@@ -434,7 +434,7 @@ export function ExamWorkspace() {
 
   const unansweredCount = activeAttempt ? activeAttempt.questions.length - answeredCount : 0
 
-  constpracticeAvailableCount = useMemo(() => {
+  const practiceAvailableCount = useMemo(() => {
     if (!setupData?.poolCounts) return 0
     let sum = 0
     for (const t of practiceTopics) {
@@ -1289,26 +1289,26 @@ export function ExamWorkspace() {
 
             <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
               <p className="text-xs text-muted-foreground">
-                <strong>{constpracticeAvailableCount}</strong> real question(s) in the bank match your filters.
-                {constpracticeAvailableCount > 0 && constpracticeAvailableCount < practiceCount
-                  ? ` Your session will include all ${constpracticeAvailableCount} available question(s).`
+                <strong>{practiceAvailableCount}</strong> real question(s) in the bank match your filters.
+                {practiceAvailableCount > 0 && practiceAvailableCount < practiceCount
+                  ? ` Your session will include all ${practiceAvailableCount} available question(s).`
                   : ''}
               </p>
 
               <Button
                 size="lg"
                 onClick={handleStartExam}
-                disabled={starting || constpracticeAvailableCount === 0}
+                disabled={starting || practiceAvailableCount === 0}
                 title={
-                  constpracticeAvailableCount === 0
+                  practiceAvailableCount === 0
                     ? 'No questions in the question bank match the selected filters'
                     : undefined
                 }
               >
                 {starting ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
                 <span>
-                  Start Practice ({Math.min(practiceCount, constpracticeAvailableCount)} Question
-                  {Math.min(practiceCount, constpracticeAvailableCount) === 1 ? '' : 's'})
+                  Start Practice ({Math.min(practiceCount, practiceAvailableCount)} Question
+                  {Math.min(practiceCount, practiceAvailableCount) === 1 ? '' : 's'})
                 </span>
               </Button>
             </div>
