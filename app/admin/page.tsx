@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 import { AdminConsole } from '@/components/admin-console'
 import { AppHeader } from '@/components/app-header'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUserContext } from '@/lib/auth/server'
 
 export const metadata: Metadata = { title: 'Administration · ICT Prep' }
 
 export default async function AdminPage() {
-  const { data: { user } } = await (await createClient()).auth.getUser()
+  const { user, profile, isAdmin } = await getCurrentUserContext()
   return (
-    <>
-      <AppHeader email={user?.email} isAdmin />
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader email={user?.email} fullName={profile?.full_name} isAdmin={isAdmin} />
       <AdminConsole />
-    </>
+    </div>
   )
 }
