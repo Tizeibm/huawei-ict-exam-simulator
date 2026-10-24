@@ -42,19 +42,19 @@
   --card-foreground: oklch(.18 .025 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(.18 .025 260);
-  --primary: oklch(.49 .22 26);
+  --primary: oklch(.5 .2 259);
   --primary-foreground: oklch(.985 0 0);
-  --secondary: oklch(.955 .008 260);
-  --secondary-foreground: oklch(.25 .025 260);
-  --muted: oklch(.955 .008 260);
-  --muted-foreground: oklch(.51 .025 260);
-  --accent: oklch(.95 .012 26);
-  --accent-foreground: oklch(.3 .12 26);
+  --secondary: oklch(.955 .012 255);
+  --secondary-foreground: oklch(.25 .04 258);
+  --muted: oklch(.955 .01 255);
+  --muted-foreground: oklch(.5 .03 258);
+  --accent: oklch(.95 .025 255);
+  --accent-foreground: oklch(.3 .12 259);
   --destructive: oklch(.52 .2 25);
-  --border: oklch(.9 .012 260);
-  --input: oklch(.88 .012 260);
-  --ring: oklch(.58 .16 26);
-  --chart-1: oklch(.49 .22 26);
+  --border: oklch(.9 .015 255);
+  --input: oklch(.86 .02 255);
+  --ring: oklch(.58 .17 259);
+  --chart-1: oklch(.5 .2 259);
   --chart-2: oklch(.6 .16 245);
   --chart-3: oklch(.5 .12 175);
   --chart-4: oklch(.7 .15 80);
@@ -70,19 +70,19 @@
   --card-foreground: oklch(.96 .006 260);
   --popover: oklch(.19 .02 260);
   --popover-foreground: oklch(.96 .006 260);
-  --primary: oklch(.58 .2 25);
+  --primary: oklch(.62 .19 259);
   --primary-foreground: oklch(.985 0 0);
   --secondary: oklch(.24 .022 260);
   --secondary-foreground: oklch(.94 .006 260);
   --muted: oklch(.24 .022 260);
   --muted-foreground: oklch(.7 .018 260);
-  --accent: oklch(.26 .035 25);
-  --accent-foreground: oklch(.92 .04 25);
+  --accent: oklch(.27 .05 259);
+  --accent-foreground: oklch(.92 .04 259);
   --destructive: oklch(.62 .2 25);
   --border: oklch(1 0 0 / 11%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(.65 .16 25);
-  --chart-1: oklch(.58 .2 25);
+  --ring: oklch(.65 .16 259);
+  --chart-1: oklch(.62 .19 259);
   --chart-2: oklch(.68 .15 245);
   --chart-3: oklch(.62 .12 175);
   --chart-4: oklch(.76 .14 80);
@@ -95,19 +95,27 @@ body { @apply bg-background text-foreground antialiased; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button:focus-visible, a:focus-visible, select:focus-visible { @apply outline-2 outline-offset-2 outline-ring; }
 
-.brand-mark { @apply flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-[0_6px_16px_rgba(199,0,11,.24)]; }
+.brand-mark { @apply flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,.28)]; }
 .brand-mark span { transform: skew(-8deg); }
-.hero-panel { position: relative; background: linear-gradient(115deg, color-mix(in oklch, var(--card) 94%, var(--primary)), var(--card)); }
-.hero-panel::after { content: ''; position: absolute; right: -9rem; top: -10rem; width: 30rem; height: 30rem; border: 3rem solid color-mix(in oklch, var(--primary) 10%, transparent); border-radius: 999px; pointer-events: none; }
 .metric-card, .activity-row, .answer-option, .question-dot { transition: transform .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease; }
 .metric-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px color-mix(in oklch, var(--foreground) 8%, transparent); }
 .activity-row { @apply flex items-center gap-3 rounded-xl border border-transparent p-3; }
 .activity-row:hover { @apply border-border bg-secondary/60; }
-.auth-stage { @apply relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-5 py-12; }
-.auth-card { @apply relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl lg:grid-cols-[1.08fr_.92fr]; }
-.auth-orb { @apply pointer-events-none absolute rounded-full blur-3xl; }
-.auth-orb-one { @apply -right-24 -top-24 size-80 bg-red-500/10; }
-.auth-orb-two { @apply -bottom-32 -left-24 size-96 bg-blue-500/10; }
+.auth-stage { @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--primary)_9%,transparent),transparent_55%)] px-4 py-8 sm:px-6; }
+.auth-card { @apply relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/70 bg-card shadow-[0_24px_70px_-20px_rgba(30,64,175,.35)] lg:grid-cols-[1.05fr_.95fr]; animation: reveal .45s ease-out both; }
+.auth-brand-panel { @apply relative hidden flex-col justify-between gap-10 overflow-hidden p-10 text-white lg:flex; background: linear-gradient(155deg, oklch(.32 .13 262), oklch(.45 .19 259) 55%, oklch(.55 .19 250)); }
+.auth-brand-panel::before { content: ''; position: absolute; right: -7rem; top: -8rem; width: 26rem; height: 26rem; border: 2.5rem solid rgba(255,255,255,.07); border-radius: 999px; pointer-events: none; }
+.auth-brand-panel::after { content: ''; position: absolute; left: -6rem; bottom: -9rem; width: 22rem; height: 22rem; border-radius: 999px; background: rgba(255,255,255,.06); pointer-events: none; }
+.auth-form-panel { @apply flex flex-col justify-center gap-6 p-6 sm:p-10; }
+.auth-field { @apply flex flex-col gap-1.5; }
+.auth-field label { @apply text-sm font-medium text-foreground; }
+.auth-field input { @apply h-11 rounded-xl px-3.5 text-base md:text-sm; }
+.auth-hint { @apply text-xs text-muted-foreground; }
+.auth-error { @apply text-xs font-medium text-destructive; }
+.auth-alert { @apply flex items-start gap-2.5 rounded-xl border p-3 text-sm; }
+.auth-alert-error { @apply border-destructive/30 bg-destructive/10 text-destructive; }
+.auth-alert-success { @apply border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300; }
+.auth-alert-info { @apply border-primary/25 bg-accent text-accent-foreground; }
 .exam-stage { animation: reveal .35s ease-out both; }
 .timer-chip { @apply flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-semibold shadow-sm; }
 .exam-progress { @apply rounded-xl border bg-card p-4 shadow-sm; }
