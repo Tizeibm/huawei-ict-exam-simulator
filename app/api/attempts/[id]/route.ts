@@ -6,8 +6,10 @@ import type { ExamMode, QuestionType, Topic } from '@/lib/exam/config'
 import { gradeAttempt, interpretScore, percent, type GradableQuestion } from '@/lib/exam/scoring'
 import { canAcceptAnswers, finalStatus, isExpired, secondsRemaining } from '@/lib/exam/timer'
 import {
+  packAttemptDetails,
   sanitizeQuestionsForClient,
   toAttemptSummary,
+  unpackAttemptRow,
   type PersistedAttemptRow,
 } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -53,7 +55,7 @@ async function finalizeAttemptOnServer(
   attempt: PersistedAttemptRow,
   incomingAnswers?: Record<string, string[]>,
   incomingFlagged?: string[],
-) {
+): Promise<PersistedAttemptRow> {
   const nowMs = Date.now()
   const nowIso = new Date(nowMs).toISOString()
   const acceptNewAnswers = canAcceptAnswers(
@@ -81,30 +83,39 @@ async function finalizeAttemptOnServer(
     ? Math.min(attempt.duration_seconds, elapsedSeconds)
     : elapsedSeconds
 
+  const packed = packAttemptDetails({
+    mode: attempt.mode,
+    status,
+    started_at: attempt.started_at,
+    expires_at: attempt.expires_at,
+    submitted_at: nowIso,
+    duration_seconds: attempt.duration_seconds,
+    time_used_seconds: timeUsedSeconds,
+    question_ids: questionIds,
+    answers: mergedAnswers,
+    flagged_ids: mergedFlagged,
+    topic_stats: graded.topicStats,
+    practice_config: attempt.practice_config,
+    results: graded.results,
+  })
+
   const { data: updated, error } = await privileged
     .from('exam_attempts')
     .update({
-      status,
-      submitted_at: nowIso,
-      time_used_seconds: timeUsedSeconds,
-      answers: mergedAnswers,
-      flagged_ids: mergedFlagged,
       score: graded.score,
       total: graded.total,
-      topic_stats: graded.topicStats,
-      details: graded.results,
-      updated_at: nowIso,
+      details: packed,
     })
     .eq('id', attempt.id)
     .eq('user_id', attempt.user_id)
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .single()
 
   if (error || !updated) {
     throw new Error('Unable to persist finalized exam attempt.')
   }
 
-  return updated as PersistedAttemptRow
+  return unpackAttemptRow(updated as Record<string, unknown>)
 }
 
 /**
@@ -120,7 +131,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const privileged = createAdminClient()
   const { data: row, error } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle()
@@ -129,10 +140,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Exam attempt not found.' }, { status: 404 })
   }
 
-  let attempt = row as PersistedAttemptRow
+  let attempt = unpackAttemptRow(row as Record<string, unknown>)
   const nowMs = Date.now()
 
-  // If the attempt is IN_PROGRESS and its timer has already expired past the grace window, auto-submit it now
   if (attempt.status === 'IN_PROGRESS' && isExpired(attempt.expires_at ?? null, nowMs)) {
     try {
       attempt = await finalizeAttemptOnServer(privileged, attempt)
@@ -163,16 +173,16 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     })
   }
 
-  // Completed attempt (SUBMITTED or EXPIRED): include full details, topic breakdown, and historical comparison
   const { data: allUserAttempts } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('user_id', auth.user.id)
     .order('created_at', { ascending: true })
     .limit(100)
 
-  const completedSummaries = ((allUserAttempts ?? []) as PersistedAttemptRow[])
-    .filter((a) => !a.status || a.status === 'SUBMITTED' || a.status === 'EXPIRED')
+  const completedSummaries = (allUserAttempts ?? [])
+    .map((r) => unpackAttemptRow(r as Record<string, unknown>))
+    .filter((a) => a.status === 'SUBMITTED' || a.status === 'EXPIRED')
     .map(toAttemptSummary)
 
   const currentSummary = toAttemptSummary(attempt)
@@ -220,7 +230,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const privileged = createAdminClient()
   const { data: row, error } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle()
@@ -229,11 +239,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: 'Exam attempt not found.' }, { status: 404 })
   }
 
-  const attempt = row as PersistedAttemptRow
+  const attempt = unpackAttemptRow(row as Record<string, unknown>)
   const { action, answers, flagged_ids } = parsed.data
   const nowMs = Date.now()
 
-  // Idempotent handling: if already SUBMITTED or EXPIRED, return the existing result immediately
   if (attempt.status === 'SUBMITTED' || attempt.status === 'EXPIRED') {
     return NextResponse.json({
       id: attempt.id,
@@ -249,9 +258,24 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   if (action === 'abandon') {
+    const abandonedDetails = packAttemptDetails({
+      mode: attempt.mode,
+      status: 'ABANDONED',
+      started_at: attempt.started_at,
+      expires_at: attempt.expires_at,
+      submitted_at: attempt.submitted_at,
+      duration_seconds: attempt.duration_seconds,
+      time_used_seconds: attempt.time_used_seconds,
+      question_ids: attempt.question_ids,
+      answers: attempt.answers,
+      flagged_ids: attempt.flagged_ids,
+      topic_stats: attempt.topic_stats,
+      practice_config: attempt.practice_config,
+      results: attempt.details,
+    })
     await privileged
       .from('exam_attempts')
-      .update({ status: 'ABANDONED', updated_at: new Date(nowMs).toISOString() })
+      .update({ details: abandonedDetails })
       .eq('id', attempt.id)
       .eq('user_id', auth.user.id)
     return NextResponse.json({ ok: true, status: 'ABANDONED' })
@@ -281,13 +305,25 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const nextAnswers = answers ? { ...(attempt.answers ?? {}), ...answers } : (attempt.answers ?? {})
   const nextFlagged = flagged_ids ?? (attempt.flagged_ids ?? [])
 
+  const savedDetails = packAttemptDetails({
+    mode: attempt.mode,
+    status: 'IN_PROGRESS',
+    started_at: attempt.started_at,
+    expires_at: attempt.expires_at,
+    submitted_at: null,
+    duration_seconds: attempt.duration_seconds,
+    time_used_seconds: null,
+    question_ids: attempt.question_ids,
+    answers: nextAnswers,
+    flagged_ids: nextFlagged,
+    topic_stats: null,
+    practice_config: attempt.practice_config,
+    results: [],
+  })
+
   const { error: saveError } = await privileged
     .from('exam_attempts')
-    .update({
-      answers: nextAnswers,
-      flagged_ids: nextFlagged,
-      updated_at: new Date(nowMs).toISOString(),
-    })
+    .update({ details: savedDetails })
     .eq('id', attempt.id)
     .eq('user_id', auth.user.id)
 

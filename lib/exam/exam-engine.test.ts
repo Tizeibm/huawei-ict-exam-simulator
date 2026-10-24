@@ -6,8 +6,6 @@ import {
   FULL_BLUEPRINT,
   QUESTION_TYPES,
   TOPICS,
-  type QuestionType,
-  type Topic,
 } from './config.ts'
 import {
   blueprintShortages,
@@ -37,14 +35,15 @@ import {
   compareWithPrevious,
   recommendNext,
   summarizeHistory,
-  topicProgress,
   trendSeries,
   type AttemptSummary,
 } from './analytics.ts'
 import {
   extractReviewQuestionIds,
+  packAttemptDetails,
   sanitizeQuestionsForClient,
   toAttemptSummary,
+  unpackAttemptRow,
 } from '../exam-service.ts'
 
 function createSyntheticPool(multiplier = 1): PoolItem[] {
@@ -155,25 +154,21 @@ test('SINGLE, MULTIPLE, and BOOLEAN answer sanitization and strict scoring', () 
     explanation: 'Kunpeng 920 implements ARMv8.2.',
   }
 
-  // SINGLE replaces/truncates multiple keys and ignores nonexistent option keys
   assert.deepEqual(sanitizeSelection(singleQ, ['A', 'B', 'Z']), ['A'])
   assert.equal(isCorrect(singleQ, ['A']), true)
   assert.equal(isCorrect(singleQ, ['B']), false)
   assert.equal(isCorrect(singleQ, []), false)
 
-  // MULTIPLE requires exact set match (order-independent, no partial credit)
   assert.equal(isCorrect(multiQ, ['B', 'A']), true)
   assert.equal(isCorrect(multiQ, ['A']), false)
   assert.equal(isCorrect(multiQ, ['A', 'B', 'C']), false)
 
-  // BOOLEAN
   assert.equal(isCorrect(boolQ, ['A']), true)
   assert.equal(isCorrect(boolQ, ['B']), false)
 
-  // Full attempt grading & per-technology breakdown
   const graded = gradeAttempt(
     [singleQ, multiQ, boolQ],
-    { q1: ['A'], q2: ['A'] }, // q1 correct, q2 partial (incorrect), q3 unanswered
+    { q1: ['A'], q2: ['A'] },
     ['q2'],
   )
   assert.equal(graded.score, 1)
@@ -212,9 +207,9 @@ test('Active scored exam sanitization never leaks correct_answers or explanation
 
 test('Timer expiry, grace period, and status transitions work accurately', () => {
   const now = 1_700_000_000_000
-  const future = new Date(now + 125_000).toISOString() // +125s
-  const justExpired = new Date(now - 5_000).toISOString() // -5s (within 10s grace)
-  const longExpired = new Date(now - 30_000).toISOString() // -30s (past grace)
+  const future = new Date(now + 125_000).toISOString()
+  const justExpired = new Date(now - 5_000).toISOString()
+  const longExpired = new Date(now - 30_000).toISOString()
 
   assert.equal(secondsRemaining(future, now), 125)
   assert.equal(formatClock(125), '02:05')
@@ -231,13 +226,11 @@ test('Timer expiry, grace period, and status transitions work accurately', () =>
 })
 
 test('Historical analytics & comparisons handle zero, one, and multiple attempts without mock stats', () => {
-  // Zero attempts
   const emptySummary = summarizeHistory([])
   assert.deepEqual(emptySummary, { count: 0, latest: null, best: null, average: null })
   assert.equal(recommendNext([]), null)
   assert.deepEqual(trendSeries([]), [])
 
-  // One attempt
   const a1: AttemptSummary = {
     id: 'att-1',
     mode: 'FULL',
@@ -245,16 +238,15 @@ test('Historical analytics & comparisons handle zero, one, and multiple attempts
     score: 36,
     total: 60,
     topic_stats: {
-      OPENEULER: { total: 30, correct: 21, incorrect: 9, unanswered: 0 }, // 70%
-      OPENGAUSS: { total: 18, correct: 9, incorrect: 9, unanswered: 0 }, // 50%
-      KUNPENG: { total: 12, correct: 6, incorrect: 6, unanswered: 0 }, // 50%
+      OPENEULER: { total: 30, correct: 21, incorrect: 9, unanswered: 0 },
+      OPENGAUSS: { total: 18, correct: 9, incorrect: 9, unanswered: 0 },
+      KUNPENG: { total: 12, correct: 6, incorrect: 6, unanswered: 0 },
     },
   }
   const singleComp = compareWithPrevious([a1], 'att-1')
   assert.equal(singleComp.hasPrevious, false)
   assert.equal(singleComp.deltaPoints, null)
 
-  // Multiple attempts
   const a2: AttemptSummary = {
     id: 'att-2',
     mode: 'FULL',
@@ -262,9 +254,9 @@ test('Historical analytics & comparisons handle zero, one, and multiple attempts
     score: 45,
     total: 60,
     topic_stats: {
-      OPENEULER: { total: 30, correct: 24, incorrect: 6, unanswered: 0 }, // 80%
-      OPENGAUSS: { total: 18, correct: 12, incorrect: 6, unanswered: 0 }, // 66.7%
-      KUNPENG: { total: 12, correct: 9, incorrect: 3, unanswered: 0 }, // 75%
+      OPENEULER: { total: 30, correct: 24, incorrect: 6, unanswered: 0 },
+      OPENGAUSS: { total: 18, correct: 12, incorrect: 6, unanswered: 0 },
+      KUNPENG: { total: 12, correct: 9, incorrect: 3, unanswered: 0 },
     },
   }
 
@@ -283,6 +275,43 @@ test('Historical analytics & comparisons handle zero, one, and multiple attempts
 
   const rec = recommendNext([a1, a2])
   assert.equal(rec?.topic, 'OPENGAUSS')
+})
+
+test('packAttemptDetails and unpackAttemptRow work with base exam_attempts schema without extra columns', () => {
+  const packed = packAttemptDetails({
+    mode: 'PRACTICE',
+    status: 'IN_PROGRESS',
+    started_at: '2026-10-24T10:00:00Z',
+    expires_at: '2026-10-24T10:30:00Z',
+    submitted_at: null,
+    duration_seconds: 1800,
+    time_used_seconds: null,
+    question_ids: ['q-1', 'q-2'],
+    answers: { 'q-1': ['A'] },
+    flagged_ids: ['q-2'],
+    topic_stats: null,
+    practice_config: { topics: ['OPENEULER'], immediateFeedback: true, requestedCount: 2 },
+    results: [],
+  })
+
+  // Simulate base Supabase row with ONLY (id, user_id, score, total, details, created_at)
+  const dbRow = {
+    id: 'attempt-uuid-1',
+    user_id: 'user-uuid-1',
+    score: 0,
+    total: 2,
+    details: packed,
+    created_at: '2026-10-24T10:00:00Z',
+  }
+
+  const unpacked = unpackAttemptRow(dbRow)
+  assert.equal(unpacked.id, 'attempt-uuid-1')
+  assert.equal(unpacked.mode, 'PRACTICE')
+  assert.equal(unpacked.status, 'IN_PROGRESS')
+  assert.deepEqual(unpacked.question_ids, ['q-1', 'q-2'])
+  assert.deepEqual(unpacked.answers, { 'q-1': ['A'] })
+  assert.deepEqual(unpacked.flagged_ids, ['q-2'])
+  assert.equal(unpacked.practice_config?.immediateFeedback, true)
 })
 
 test('Question quality check and legacy attempt normalization', () => {

@@ -29,7 +29,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       explanation: q.explanation ?? '',
     })
     .eq('id', id)
-    .select('id, topic, type, question_text, options, correct_answers, explanation, created_at')
+    .select('id, topic, type, question_text, options, correct_answers, explanation')
     .maybeSingle()
 
   if (error || !data) {

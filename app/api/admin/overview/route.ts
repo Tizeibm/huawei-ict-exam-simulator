@@ -4,6 +4,7 @@ import { canChangeRole, canChangeStatus, normalizeRole, normalizeStatus } from '
 import { createAdminClient } from '@/lib/supabase/admin'
 import { blueprintShortages, countPool, type PoolItem } from '@/lib/exam/generate'
 import { isExamReady, questionIssues } from '@/lib/exam/quality'
+import { unpackAttemptRow } from '@/lib/exam-service'
 import type { QuestionType, Topic } from '@/lib/exam/config'
 
 export async function GET() {
@@ -21,12 +22,11 @@ export async function GET() {
     privileged.from('profiles').select('id, full_name, status, role, created_at, updated_at').order('created_at', { ascending: false }),
     privileged
       .from('questions')
-      .select('id, topic, type, question_text, options, correct_answers, explanation, created_at')
-      .order('created_at', { ascending: false })
+      .select('id, topic, type, question_text, options, correct_answers, explanation')
       .limit(2000),
     privileged
       .from('exam_attempts')
-      .select('id, user_id, score, total, mode, status, created_at')
+      .select('id, user_id, score, total, details, created_at')
       .order('created_at', { ascending: false })
       .limit(500),
     privileged.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -48,8 +48,9 @@ export async function GET() {
   }
 
   const attemptsByUser = new Map<string, number>()
-  for (const att of attemptsRes.data ?? []) {
-    if (!att.status || att.status === 'SUBMITTED' || att.status === 'EXPIRED') {
+  for (const rawAtt of attemptsRes.data ?? []) {
+    const att = unpackAttemptRow(rawAtt as Record<string, unknown>)
+    if (att.status === 'SUBMITTED' || att.status === 'EXPIRED') {
       attemptsByUser.set(att.user_id, (attemptsByUser.get(att.user_id) ?? 0) + 1)
     }
   }
@@ -95,7 +96,6 @@ export async function GET() {
       options: (q.options ?? {}) as Record<string, string>,
       correct_answers: (q.correct_answers ?? []) as string[],
       explanation: q.explanation ?? '',
-      created_at: q.created_at,
       issues,
       examReady: ready,
     }

@@ -4,7 +4,6 @@ import { requireApproved } from '@/lib/auth/server'
 import {
   FULL_EXAM_DURATION_MINUTES,
   PRACTICE_MAX_QUESTIONS,
-  PRACTICE_MIN_QUESTIONS,
   QUESTION_TYPES,
   TOPICS,
   type ExamMode,
@@ -21,11 +20,12 @@ import {
 } from '@/lib/exam/generate'
 import { isExamReady } from '@/lib/exam/quality'
 import { gradeAttempt, type GradableQuestion } from '@/lib/exam/scoring'
-import { finalStatus, isExpired, secondsRemaining } from '@/lib/exam/timer'
+import { isExpired, secondsRemaining } from '@/lib/exam/timer'
 import {
   extractReviewQuestionIds,
+  packAttemptDetails,
   sanitizeQuestionsForClient,
-  type PersistedAttemptRow,
+  unpackAttemptRow,
 } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -100,7 +100,7 @@ export async function GET() {
       loadExamReadyQuestions(privileged),
       privileged
         .from('exam_attempts')
-        .select('*')
+        .select('id, user_id, score, total, details, created_at')
         .eq('user_id', auth.user.id)
         .order('created_at', { ascending: false })
         .limit(50),
@@ -110,10 +110,9 @@ export async function GET() {
     const poolCounts = countPool(pool)
     const shortages = blueprintShortages(pool)
 
-    const userAttempts = (attemptsRes.data ?? []) as PersistedAttemptRow[]
+    const userAttempts = (attemptsRes.data ?? []).map((r) => unpackAttemptRow(r as Record<string, unknown>))
     const now = Date.now()
 
-    // Check if there is an IN_PROGRESS attempt; if it has expired, finalize it automatically
     let activeAttempt: {
       id: string
       mode: ExamMode
@@ -127,7 +126,6 @@ export async function GET() {
     const inProgress = userAttempts.find((a) => a.status === 'IN_PROGRESS')
     if (inProgress) {
       if (isExpired(inProgress.expires_at ?? null, now)) {
-        // Auto-finalize expired session
         const qMap = new Map(allQuestions.map((q) => [q.id, q]))
         const ordered = (inProgress.question_ids ?? [])
           .map((id) => qMap.get(id))
@@ -135,20 +133,32 @@ export async function GET() {
 
         if (ordered.length > 0) {
           const graded = gradeAttempt(ordered, inProgress.answers ?? {}, inProgress.flagged_ids ?? [])
+          const nowIso = new Date(now).toISOString()
+          const packed = packAttemptDetails({
+            mode: inProgress.mode,
+            status: 'EXPIRED',
+            started_at: inProgress.started_at,
+            expires_at: inProgress.expires_at,
+            submitted_at: nowIso,
+            duration_seconds: inProgress.duration_seconds,
+            time_used_seconds: inProgress.duration_seconds ?? null,
+            question_ids: inProgress.question_ids,
+            answers: inProgress.answers,
+            flagged_ids: inProgress.flagged_ids,
+            topic_stats: graded.topicStats,
+            practice_config: inProgress.practice_config,
+            results: graded.results,
+          })
           await privileged
             .from('exam_attempts')
             .update({
-              status: 'EXPIRED',
-              submitted_at: new Date(now).toISOString(),
-              time_used_seconds: inProgress.duration_seconds ?? null,
               score: graded.score,
               total: graded.total,
-              topic_stats: graded.topicStats,
-              details: graded.results,
-              updated_at: new Date(now).toISOString(),
+              details: packed,
             })
             .eq('id', inProgress.id)
             .eq('user_id', auth.user.id)
+
           inProgress.status = 'EXPIRED'
           inProgress.score = graded.score
           inProgress.details = graded.results
@@ -159,7 +169,7 @@ export async function GET() {
         const answeredCount = Object.values(ansObj).filter((arr) => Array.isArray(arr) && arr.length > 0).length
         activeAttempt = {
           id: inProgress.id,
-          mode: (inProgress.mode as ExamMode) ?? 'FULL',
+          mode: inProgress.mode ?? 'FULL',
           started_at: inProgress.started_at ?? inProgress.created_at,
           expires_at: inProgress.expires_at ?? null,
           remainingSeconds: secondsRemaining(inProgress.expires_at ?? null, now),
@@ -184,7 +194,7 @@ export async function GET() {
       fullExamReady: shortages.length === 0,
       activeAttempt,
       reviewCounts,
-      completedAttemptsCount: userAttempts.filter((a) => !a.status || a.status === 'SUBMITTED' || a.status === 'EXPIRED').length,
+      completedAttemptsCount: userAttempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'EXPIRED').length,
     })
   } catch {
     return NextResponse.json({ error: 'Unable to load exam workspace configuration.' }, { status: 500 })
@@ -195,6 +205,8 @@ export async function GET() {
  * POST /api/attempts
  * Either starts a new stateful exam attempt (`{ mode: 'FULL' | 'PRACTICE' | 'REVIEW', ... }`)
  * OR grades and saves a legacy direct submission (`{ answers: { ... } }`).
+ * Uses only the guaranteed base columns (`user_id`, `score`, `total`, `details`) on `public.exam_attempts`
+ * so it succeeds even before optional schema extensions are applied.
  */
 export async function POST(request: Request) {
   const auth = await requireApproved()
@@ -245,46 +257,35 @@ export async function POST(request: Request) {
     const graded = gradeAttempt(orderedQuestions, parsedLegacy.data.answers, parsedLegacy.data.flagged)
     const nowIso = new Date().toISOString()
 
+    const packed = packAttemptDetails({
+      mode: parsedLegacy.data.mode,
+      status: 'SUBMITTED',
+      started_at: nowIso,
+      expires_at: null,
+      submitted_at: nowIso,
+      duration_seconds: null,
+      time_used_seconds: parsedLegacy.data.timeUsedSeconds ?? null,
+      question_ids: ids,
+      answers: parsedLegacy.data.answers,
+      flagged_ids: parsedLegacy.data.flagged,
+      topic_stats: graded.topicStats,
+      practice_config: null,
+      results: graded.results,
+    })
+
     const { data: inserted, error: insertError } = await privileged
       .from('exam_attempts')
       .insert({
         user_id: auth.user.id,
-        mode: parsedLegacy.data.mode,
-        status: 'SUBMITTED',
-        started_at: nowIso,
-        submitted_at: nowIso,
-        time_used_seconds: parsedLegacy.data.timeUsedSeconds ?? null,
-        question_ids: ids,
-        answers: parsedLegacy.data.answers,
-        flagged_ids: parsedLegacy.data.flagged,
         score: graded.score,
         total: graded.total,
-        topic_stats: graded.topicStats,
-        details: graded.results,
+        details: packed,
       })
       .select('id, score, total')
       .single()
 
-    if (insertError) {
-      // Fallback for pre-migration database with only base columns
-      const { data: fallbackRow, error: fallbackError } = await privileged
-        .from('exam_attempts')
-        .insert({
-          user_id: auth.user.id,
-          score: graded.score,
-          total: graded.total,
-          details: graded.results,
-        })
-        .select('id, score, total')
-        .single()
-
-      if (fallbackError || !fallbackRow) {
-        return NextResponse.json({ error: 'Unable to save this attempt.' }, { status: 500 })
-      }
-      return NextResponse.json(
-        { id: fallbackRow.id, score: graded.score, total: graded.total, topicStats: graded.topicStats },
-        { status: 201 },
-      )
+    if (insertError || !inserted) {
+      return NextResponse.json({ error: 'Unable to save this attempt.' }, { status: 500 })
     }
 
     return NextResponse.json(
@@ -313,6 +314,16 @@ export async function POST(request: Request) {
     const selectedTopics: readonly Topic[] = parsedStart.data.topics?.length ? parsedStart.data.topics : TOPICS
     const selectedTypes: readonly QuestionType[] = parsedStart.data.types?.length ? parsedStart.data.types : QUESTION_TYPES
 
+    // Load recent user attempts using only guaranteed base columns
+    const { data: historyRaw } = await privileged
+      .from('exam_attempts')
+      .select('id, user_id, score, total, details, created_at')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    const unpackedHistory = (historyRaw ?? []).map((r) => unpackAttemptRow(r as Record<string, unknown>))
+
     let selectedIds: string[] = []
     let durationSeconds: number | null = null
 
@@ -321,7 +332,8 @@ export async function POST(request: Request) {
       if (!fullResult.ok) {
         return NextResponse.json(
           {
-            error: 'Insufficient questions in the question bank to generate a 60-question Full Exam Simulation. Practice Mode remains available for existing questions.',
+            error:
+              'Insufficient questions in the question bank to generate a 60-question Full Exam Simulation. Practice Mode remains available for existing questions.',
             shortages: fullResult.shortages,
           },
           { status: 422 },
@@ -346,15 +358,7 @@ export async function POST(request: Request) {
         durationSeconds = parsedStart.data.timedMinutes * 60
       }
     } else {
-      // REVIEW mode
-      const { data: historyRows } = await privileged
-        .from('exam_attempts')
-        .select('*')
-        .eq('user_id', auth.user.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      const extracted = extractReviewQuestionIds((historyRows ?? []) as PersistedAttemptRow[])
+      const extracted = extractReviewQuestionIds(unpackedHistory)
       const candidateIds =
         reviewFilter === 'INCORRECT'
           ? extracted.incorrectIds
@@ -390,40 +394,67 @@ export async function POST(request: Request) {
     const expiresAtIso = durationSeconds ? new Date(nowMs + durationSeconds * 1000).toISOString() : null
     const allowFeedback = (mode === 'PRACTICE' || mode === 'REVIEW') && immediateFeedback
 
-    // Abandon any previous IN_PROGRESS attempt for this user so only one active session exists at a time
-    await privileged
-      .from('exam_attempts')
-      .update({ status: 'ABANDONED', updated_at: startedAtIso })
-      .eq('user_id', auth.user.id)
-      .eq('status', 'IN_PROGRESS')
+    // Mark any existing IN_PROGRESS attempts for this user as ABANDONED using base `details` column
+    const inProgressRows = unpackedHistory.filter((a) => a.status === 'IN_PROGRESS')
+    for (const old of inProgressRows) {
+      await privileged
+        .from('exam_attempts')
+        .update({
+          details: packAttemptDetails({
+            mode: old.mode,
+            status: 'ABANDONED',
+            started_at: old.started_at,
+            expires_at: old.expires_at,
+            submitted_at: old.submitted_at,
+            duration_seconds: old.duration_seconds,
+            time_used_seconds: old.time_used_seconds,
+            question_ids: old.question_ids,
+            answers: old.answers,
+            flagged_ids: old.flagged_ids,
+            topic_stats: old.topic_stats,
+            practice_config: old.practice_config,
+            results: old.details,
+          }),
+        })
+        .eq('id', old.id)
+        .eq('user_id', auth.user.id)
+    }
+
+    const initialEnvelope = packAttemptDetails({
+      mode,
+      status: 'IN_PROGRESS',
+      started_at: startedAtIso,
+      expires_at: expiresAtIso,
+      submitted_at: null,
+      duration_seconds: durationSeconds,
+      time_used_seconds: null,
+      question_ids: selectedIds,
+      answers: {},
+      flagged_ids: [],
+      topic_stats: null,
+      practice_config: {
+        topics: [...selectedTopics],
+        types: [...selectedTypes],
+        immediateFeedback: allowFeedback,
+        requestedCount: parsedStart.data.count ?? orderedQuestions.length,
+      },
+      results: [],
+    })
 
     const { data: createdAttempt, error: createError } = await privileged
       .from('exam_attempts')
       .insert({
         user_id: auth.user.id,
-        mode,
-        status: 'IN_PROGRESS',
-        started_at: startedAtIso,
-        expires_at: expiresAtIso,
-        duration_seconds: durationSeconds,
-        question_ids: selectedIds,
-        answers: {},
-        flagged_ids: [],
         score: 0,
         total: orderedQuestions.length,
-        practice_config: {
-          topics: [...selectedTopics],
-          types: [...selectedTypes],
-          immediateFeedback: allowFeedback,
-          requestedCount: parsedStart.data.count ?? orderedQuestions.length,
-        },
+        details: initialEnvelope,
       })
       .select('id')
       .single()
 
     if (createError || !createdAttempt) {
       return NextResponse.json(
-        { error: 'Unable to initialize exam session. Ensure the latest database migration has been applied.' },
+        { error: createError?.message ?? 'Unable to initialize exam session.' },
         { status: 500 },
       )
     }
@@ -446,7 +477,8 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     )
-  } catch {
-    return NextResponse.json({ error: 'Unable to start exam session.' }, { status: 500 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unable to start exam session.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   const { data, error } = await privileged
     .from('questions')
     .insert(rows)
-    .select('id, topic, type, question_text, options, correct_answers, explanation, created_at')
+    .select('id, topic, type, question_text, options, correct_answers, explanation')
 
   if (error) {
     return NextResponse.json({ error: 'Unable to import questions into database.' }, { status: 500 })

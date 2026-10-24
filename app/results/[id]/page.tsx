@@ -4,8 +4,8 @@ import { AppHeader } from '@/components/app-header'
 import { ResultsView, type AttemptResultData } from '@/components/results-view'
 import { getCurrentUserContext } from '@/lib/auth/server'
 import { compareWithPrevious } from '@/lib/exam/analytics'
-import { percent, type QuestionResult } from '@/lib/exam/scoring'
-import { toAttemptSummary, type PersistedAttemptRow } from '@/lib/exam-service'
+import { percent } from '@/lib/exam/scoring'
+import { toAttemptSummary, unpackAttemptRow } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata: Metadata = { title: 'Exam Results & Review · ICT Prep' }
@@ -22,24 +22,25 @@ export default async function ResultDetailPage({
   const privileged = createAdminClient()
   const { data: row } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (!row) notFound()
 
-  const attempt = row as PersistedAttemptRow
+  const attempt = unpackAttemptRow(row as Record<string, unknown>)
 
   const { data: allRows } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
     .limit(100)
 
-  const completedSummaries = ((allRows ?? []) as PersistedAttemptRow[])
-    .filter((a) => !a.status || a.status === 'SUBMITTED' || a.status === 'EXPIRED')
+  const completedSummaries = (allRows ?? [])
+    .map((r) => unpackAttemptRow(r as Record<string, unknown>))
+    .filter((a) => a.status === 'SUBMITTED' || a.status === 'EXPIRED')
     .map(toAttemptSummary)
 
   const currentSummary = toAttemptSummary(attempt)
@@ -58,7 +59,7 @@ export default async function ResultDetailPage({
     duration_seconds: attempt.duration_seconds ?? null,
     time_used_seconds: attempt.time_used_seconds ?? null,
     topic_stats: currentSummary.topic_stats,
-    details: Array.isArray(attempt.details) ? (attempt.details as QuestionResult[]) : [],
+    details: attempt.details,
     comparison,
   }
 
