@@ -15,7 +15,7 @@ import {
 } from '@/lib/exam/analytics'
 import { SIMULATOR_PASS_PERCENT, TOPIC_LABELS, TOPICS } from '@/lib/exam/config'
 import { percent } from '@/lib/exam/scoring'
-import { toAttemptSummary, type PersistedAttemptRow } from '@/lib/exam-service'
+import { toAttemptSummary, unpackAttemptRow } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata: Metadata = { title: 'Historical Analytics · ICT Prep' }
@@ -26,14 +26,14 @@ export default async function AnalyticsPage() {
 
   const { data: rows } = await privileged
     .from('exam_attempts')
-    .select('*')
+    .select('id, user_id, score, total, details, created_at')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(100)
 
-  const completedRows = ((rows ?? []) as PersistedAttemptRow[]).filter(
-    (r) => !r.status || r.status === 'SUBMITTED' || r.status === 'EXPIRED',
-  )
+  const completedRows = (rows ?? [])
+    .map((r) => unpackAttemptRow(r as Record<string, unknown>))
+    .filter((r) => r.status === 'SUBMITTED' || r.status === 'EXPIRED')
 
   const summaries = completedRows.map(toAttemptSummary)
   const overallSummary = summarizeHistory(summaries)
@@ -64,7 +64,6 @@ export default async function AnalyticsPage() {
           </Link>
         </section>
 
-        {/* Top KPI Summary Row */}
         <section className="grid gap-4 sm:grid-cols-4">
           {[
             ['Total Attempts', String(overallSummary.count)],
@@ -81,14 +80,12 @@ export default async function AnalyticsPage() {
           ))}
         </section>
 
-        {/* Recharts & Historical Comparison */}
         <AnalyticsCharts
           attempts={summaries}
           topicProgressData={perTopic}
           latestComparison={latestComparison}
         />
 
-        {/* Complete Historical Attempts Table */}
         {summaries.length > 0 && (
           <Card>
             <CardHeader className="border-b">

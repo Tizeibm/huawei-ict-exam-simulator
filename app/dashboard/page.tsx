@@ -31,7 +31,7 @@ import {
   TOPICS,
   type Topic,
 } from '@/lib/exam/config'
-import { toAttemptSummary, type PersistedAttemptRow } from '@/lib/exam-service'
+import { toAttemptSummary, unpackAttemptRow } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata: Metadata = { title: 'Dashboard · ICT Prep' }
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
   const [attemptsRes, ...topicCountResponses] = await Promise.all([
     privileged
       .from('exam_attempts')
-      .select('*')
+      .select('id, user_id, score, total, details, created_at')
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(50),
@@ -58,9 +58,9 @@ export default async function DashboardPage() {
     ),
   ])
 
-  const allRows = (attemptsRes.data ?? []) as PersistedAttemptRow[]
+  const allRows = (attemptsRes.data ?? []).map((r) => unpackAttemptRow(r as Record<string, unknown>))
   const activeSession = allRows.find((r) => r.status === 'IN_PROGRESS')
-  const completedRows = allRows.filter((r) => !r.status || r.status === 'SUBMITTED' || r.status === 'EXPIRED')
+  const completedRows = allRows.filter((r) => r.status === 'SUBMITTED' || r.status === 'EXPIRED')
   const summaries = completedRows.map(toAttemptSummary)
 
   const summaryStats = summarizeHistory(summaries)
@@ -77,7 +77,6 @@ export default async function DashboardPage() {
       <AppHeader email={user?.email} fullName={profile?.full_name} isAdmin={isAdmin} />
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
-        {/* Top Welcome & Primary Actions */}
         <section className="flex flex-wrap items-end justify-between gap-4 border-b pb-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -114,7 +113,6 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Active Exam Banner if an unfinished session exists */}
         {activeSession && (
           <Card className="border-primary/40 bg-accent/40">
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -138,7 +136,6 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        {/* Empty Question Bank Notice */}
         {totalQuestionsInBank === 0 && (
           <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200">
             The question bank is currently empty.{' '}
@@ -152,7 +149,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 4 Core KPI Cards (Real Persisted Statistics Only) */}
         <section aria-label="Personal performance summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="metric-card">
             <CardHeader className="pb-2">
@@ -217,7 +213,6 @@ export default async function DashboardPage() {
           </Card>
         </section>
 
-        {/* Recommended Next Area to Practice Banner */}
         {recommendation && (
           <Card className="border-primary/25 bg-accent/30">
             <CardContent className="flex flex-wrap items-center justify-between gap-4 py-4">
@@ -250,7 +245,6 @@ export default async function DashboardPage() {
           </Card>
         )}
 
-        {/* Progress by Technology */}
         <section aria-label="Progress by technology" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -314,7 +308,6 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Recent Exam History */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between border-b">
             <div>

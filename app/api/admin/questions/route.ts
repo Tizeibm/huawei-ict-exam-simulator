@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       explanation: q.explanation ?? '',
       created_by: auth.user.id,
     })
-    .select('id, topic, type, question_text, options, correct_answers, explanation, created_at')
+    .select('id, topic, type, question_text, options, correct_answers, explanation')
     .single()
 
   if (error || !data) {
