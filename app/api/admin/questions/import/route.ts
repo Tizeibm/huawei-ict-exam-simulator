@@ -1,17 +1,8 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { payloadSchema } from '@/lib/question-import'
 
-const questionSchema = z.object({
-  topic: z.enum(['OPENEULER', 'OPENGAUSS', 'KUNPENG']),
-  type: z.enum(['SINGLE', 'MULTIPLE', 'BOOLEAN']),
-  question_text: z.string().trim().min(1).max(5000),
-  options: z.record(z.string(), z.string().trim().min(1).max(500)),
-  correct_answers: z.array(z.string().trim().min(1)).min(1),
-  explanation: z.string().trim().max(5000).default(''),
-})
-
-const payloadSchema = z.object({ questions: z.array(questionSchema).min(1).max(1000) })
+const MAX_BODY_BYTES = 1_000_000
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -26,6 +17,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Administrator access required.' }, { status: 403 })
   }
 
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Import payload is too large.' }, { status: 413 })
+  }
+
   let payload: unknown
   try {
     payload = await request.json()
@@ -36,6 +32,19 @@ export async function POST(request: Request) {
   const parsed = payloadSchema.safeParse(payload)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid question import payload.', issues: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const questionTexts = [...new Set(parsed.data.questions.map((question) => question.question_text))]
+  const { data: existingQuestions, error: duplicateLookupError } = await supabase
+    .from('questions')
+    .select('id, topic, type, question_text')
+    .in('question_text', questionTexts)
+
+  if (duplicateLookupError) {
+    return NextResponse.json({ error: 'Unable to check for existing questions.' }, { status: 500 })
+  }
+  if (existingQuestions.length > 0) {
+    return NextResponse.json({ error: 'One or more questions already exist.' }, { status: 409 })
   }
 
   const rows = parsed.data.questions.map((question) => ({ ...question, created_by: user.id }))
