@@ -3,71 +3,38 @@
 import { FormEvent, useEffect, useState } from 'react'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-
-export const dynamic = 'force-dynamic'
 import { fetchQuestions, scoreQuestion, type Question } from '@/lib/exam-service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 
 const supabase = createClient()
+type Status = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+type Candidate = { id: string; full_name: string; status: Status; role: string; created_at: string }
+type AdminQuestion = { id: string; topic: string; type: string; question_text: string; created_at: string }
 
 export default function Page() {
-  const [session, setSession] = useState<{ email?: string } | null>(null)
+  const [session, setSession] = useState<{ id: string; email?: string } | null>(null)
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [profileStatus, setProfileStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | null>(null)
-  const [message, setMessage] = useState('')
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [current, setCurrent] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, string[]>>({})
-  const [finished, setFinished] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [fullName, setFullName] = useState('')
+  const [profileStatus, setProfileStatus] = useState<Status | null>(null); const [role, setRole] = useState('candidate'); const [message, setMessage] = useState('')
+  const [questions, setQuestions] = useState<Question[]>([]); const [current, setCurrent] = useState(0); const [answers, setAnswers] = useState<Record<number, string[]>>({}); const [finished, setFinished] = useState(false); const [loading, setLoading] = useState(true)
+  const [candidates, setCandidates] = useState<Candidate[]>([]); const [adminQuestions, setAdminQuestions] = useState<AdminQuestion[]>([]); const [adminTab, setAdminTab] = useState<'candidates' | 'questions'>('candidates')
 
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
-      const nextSession = data.session
-      setSession(nextSession?.user ? { email: nextSession.user.email } : null)
-      if (nextSession?.user) {
-        const { data: profile } = await supabase.from('profiles').select('status').eq('id', nextSession.user.id).maybeSingle()
-        setProfileStatus(profile?.status ?? 'PENDING')
-      } else {
-        setProfileStatus(null)
-      }
-      setLoading(false)
-    })
-    const { data } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, next: Session | null) => {
-      setSession(next?.user ? { email: next.user.email } : null)
-      if (!next?.user) setProfileStatus(null)
-    })
-    return () => data.subscription.unsubscribe()
-  }, [])
-
-  async function submitAuth(event: FormEvent) {
-    event.preventDefault(); setMessage('')
-    const result = authMode === 'signin'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`, data: { full_name: fullName.trim() } } })
-    if (result.error) setMessage(result.error.message.includes('Invalid') ? 'Invalid email or password.' : result.error.message)
-    else setMessage(authMode === 'signup' ? 'Check your email to confirm your account.' : 'Signed in.')
-  }
-
-  async function startExam() {
-    setMessage('Loading questions…')
-    try { const loaded = await fetchQuestions(supabase); setQuestions(loaded); setCurrent(0); setAnswers({}); setFinished(false); setMessage(loaded.length ? '' : 'The question bank is empty. An administrator must import questions before an exam can start.') }
-    catch { setMessage('Questions could not be loaded. Please try again.') }
-  }
+  async function loadAdmin() { const response = await fetch('/api/admin/overview'); if (!response.ok) throw new Error('Unable to load admin workspace.'); const data = await response.json(); setCandidates(data.candidates); setAdminQuestions(data.questions) }
+  useEffect(() => { supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => { const next = data.session; if (next?.user) { setSession({ id: next.user.id, email: next.user.email }); const { data: profile } = await supabase.from('profiles').select('status, role').eq('id', next.user.id).maybeSingle(); setProfileStatus(profile?.status ?? 'PENDING'); setRole(profile?.role ?? 'candidate'); if (profile?.role === 'admin') loadAdmin().catch(() => setMessage('Administrator data could not be loaded.')) } setLoading(false) }); const { data } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, next: Session | null) => { setSession(next?.user ? { id: next.user.id, email: next.user.email } : null); if (!next?.user) { setProfileStatus(null); setRole('candidate') } }); return () => data.subscription.unsubscribe() }, [])
+  async function submitAuth(event: FormEvent) { event.preventDefault(); setMessage(''); const result = authMode === 'signin' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`, data: { full_name: fullName.trim() } } }); if (result.error) setMessage(result.error.message.includes('Invalid') ? 'Invalid email or password.' : result.error.message); else setMessage(authMode === 'signup' ? 'Check your email to confirm your account.' : 'Signed in.') }
+  async function startExam() { setMessage('Loading questions…'); try { const loaded = await fetchQuestions(supabase); setQuestions(loaded); setCurrent(0); setAnswers({}); setFinished(false); setMessage(loaded.length ? '' : 'The question bank is empty. An administrator must import questions before an exam can start.') } catch { setMessage('Questions could not be loaded. Please try again.') } }
+  async function updateCandidate(id: string, status: Status) { const response = await fetch('/api/admin/overview', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, status }) }); if (!response.ok) { setMessage('Candidate status could not be updated.'); return } setCandidates((items) => items.map((item) => item.id === id ? { ...item, status } : item)) }
 
   if (loading) return <main className="auth-stage"><p className="text-muted-foreground">Loading your session…</p></main>
-  if (!session) return <main className="auth-stage"><Card className="w-full max-w-md"><CardHeader><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">ICT Prep</p><CardTitle>{authMode === 'signin' ? 'Welcome back' : 'Create your account'}</CardTitle><CardDescription>Real Supabase authentication for your Computing Track preparation.</CardDescription></CardHeader><CardContent><form onSubmit={submitAuth} className="flex flex-col gap-4">{authMode === 'signup' && <Input required minLength={2} type="text" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />}<Input required type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} /><Input required minLength={8} type="password" placeholder="Password (8+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} /><Button type="submit">{authMode === 'signin' ? 'Sign in' : 'Sign up'}</Button>{message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}</form><Button variant="link" className="mt-3 px-0" onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setMessage('') }}>{authMode === 'signin' ? 'Need an account?' : 'Already have an account?'}</Button></CardContent></Card></main>
-
+  if (!session) return <main className="auth-stage"><Card className="w-full max-w-md"><CardHeader><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">ICT Prep</p><CardTitle>{authMode === 'signin' ? 'Welcome back' : 'Create your account'}</CardTitle><CardDescription>Real Supabase authentication for your Computing Track preparation.</CardDescription></CardHeader><CardContent><form onSubmit={submitAuth} className="flex flex-col gap-4">{authMode === 'signup' && <Input required minLength={2} placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />}<Input required type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} /><Input required minLength={8} type="password" placeholder="Password (8+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} /><Button type="submit">{authMode === 'signin' ? 'Sign in' : 'Sign up'}</Button>{message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}</form><Button variant="link" className="mt-3 px-0" onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setMessage('') }}>{authMode === 'signin' ? 'Need an account?' : 'Already have an account?'}</Button></CardContent></Card></main>
+  if (role === 'admin') return <main className="mx-auto min-h-screen max-w-6xl px-5 py-8"><div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><Badge variant="outline">Administrator console</Badge><h1 className="mt-3 text-3xl font-bold">Review and manage access</h1><p className="mt-2 text-muted-foreground">Approve candidates and keep the live question bank ready.</p></div><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sign out</Button></div><div className="grid gap-4 md:grid-cols-3"><Card><CardHeader><CardDescription>Pending review</CardDescription><CardTitle>{candidates.filter((item) => item.status === 'PENDING').length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Approved candidates</CardDescription><CardTitle>{candidates.filter((item) => item.status === 'APPROVED').length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Question bank</CardDescription><CardTitle>{adminQuestions.length}</CardTitle></CardHeader></Card></div><Card className="mt-6"><CardHeader><div className="flex gap-2"><Button variant={adminTab === 'candidates' ? 'default' : 'outline'} onClick={() => setAdminTab('candidates')}>Candidate approvals</Button><Button variant={adminTab === 'questions' ? 'default' : 'outline'} onClick={() => setAdminTab('questions')}>Question bank</Button></div></CardHeader><CardContent>{adminTab === 'candidates' ? <div className="flex flex-col gap-3">{candidates.map((candidate) => <div key={candidate.id} className="flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4"><div><p className="font-medium">{candidate.full_name}</p><p className="text-sm text-muted-foreground">{candidate.id} · Joined {new Date(candidate.created_at).toLocaleDateString()}</p></div><div className="flex items-center gap-2"><Badge variant={candidate.status === 'APPROVED' ? 'default' : 'secondary'}>{candidate.status}</Badge>{candidate.status === 'PENDING' && <><Button size="sm" onClick={() => updateCandidate(candidate.id, 'APPROVED')}>Approve</Button><Button size="sm" variant="outline" onClick={() => updateCandidate(candidate.id, 'REJECTED')}>Reject</Button></>}</div></div>)}{!candidates.length && <p className="text-muted-foreground">No candidates yet.</p>}</div> : <div className="flex flex-col gap-3">{adminQuestions.map((question) => <div key={question.id} className="rounded-lg border p-4"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{question.topic}</Badge><Badge variant="secondary">{question.type}</Badge></div><p className="mt-2 font-medium">{question.question_text}</p></div>)}{!adminQuestions.length && <p className="text-muted-foreground">No questions imported yet. Use the secured import endpoint to add the question bank.</p>}</div>}</CardContent></Card></main>
   if (finished) { const score = questions.reduce((total, question, index) => total + (scoreQuestion(question, answers[index] ?? []) ? 1 : 0), 0); return <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-5 py-10"><Card><CardHeader><CardTitle>Practice complete</CardTitle><CardDescription>Your result is calculated from the questions you answered.</CardDescription></CardHeader><CardContent className="flex flex-col gap-5"><p className="text-4xl font-bold">{score} / {questions.length}</p><Button onClick={startExam}>Start another practice session</Button></CardContent></Card></main> }
   if (!questions.length) return <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-5 py-10"><Card><CardHeader><CardTitle>{profileStatus === 'APPROVED' ? 'Candidate workspace' : 'Account under review'}</CardTitle><CardDescription>{session.email}</CardDescription></CardHeader><CardContent className="flex flex-col gap-4">{profileStatus === 'APPROVED' ? <><p className="text-muted-foreground">Start a session using the live Supabase question bank. No sample questions or simulated attempts are used.</p><div className="flex gap-3"><Button onClick={startExam}>Start practice</Button><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sign out</Button></div></> : <><p className="text-muted-foreground">Your account is {profileStatus === 'REJECTED' ? 'not approved' : profileStatus === 'SUSPENDED' ? 'suspended' : 'pending administrator approval'}. You will be able to access practice exams once an administrator approves your account.</p><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sign out</Button></>}{message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}</CardContent></Card></main>
-
   const question = questions[current]; const selected = answers[current] ?? []; const choose = (key: string) => setAnswers((old) => ({ ...old, [current]: question.type === 'MULTIPLE' ? selected.includes(key) ? selected.filter((v) => v !== key) : [...selected, key] : [key] }))
-  return <main className="mx-auto min-h-screen max-w-4xl px-5 py-10"><div className="mb-6 flex items-center justify-between"><div><Badge variant="outline">Question {current + 1} of {questions.length}</Badge><h1 className="mt-3 text-2xl font-bold">Technical readiness assessment</h1></div><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sign out</Button></div><Progress value={((current + 1) / questions.length) * 100} className="mb-6" /><Card><CardHeader><CardDescription>{question.topic} · {question.type}</CardDescription><CardTitle>{question.question_text}</CardTitle></CardHeader><CardContent className="flex flex-col gap-3">{Object.entries(question.options).map(([key, value]) => <Button key={key} variant={selected.includes(key) ? 'default' : 'outline'} className="justify-start whitespace-normal text-left" onClick={() => choose(key)}>{key}. {value}</Button>)}<div className="mt-4 flex justify-between gap-3"><Button variant="outline" disabled={current === 0} onClick={() => setCurrent((n) => n - 1)}>Previous</Button>{current === questions.length - 1 ? <Button onClick={() => setFinished(true)}>Finish</Button> : <Button onClick={() => setCurrent((n) => n + 1)}>Next</Button>}</div></CardContent></Card></main>
+  return <main className="mx-auto min-h-screen max-w-4xl px-5 py-10"><div className="mb-6 flex items-center justify-between"><div><Badge variant="outline">Question {current + 1} of {questions.length}</Badge><h1 className="mt-3 text-2xl font-bold">Technical readiness assessment</h1></div><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sign out</Button></div><Progress value={((current + 1) / questions.length) * 100} className="mb-6" /><Card><CardHeader><CardDescription>{question.topic} · {question.type}</CardDescription><CardTitle>{question.question_text}</CardTitle></CardHeader><CardContent className="flex flex-col gap-3">{Object.entries(question.options).map(([key, value]) => <Button key={key} variant={selected.includes(key) ? 'default' : 'outline'} className="justify-start whitespace-normal text-left" onClick={() => choose(key)}>{key}. {value}</Button>)}<Separator /><div className="flex justify-between gap-3"><Button variant="outline" disabled={current === 0} onClick={() => setCurrent((n) => n - 1)}>Previous</Button>{current === questions.length - 1 ? <Button onClick={() => setFinished(true)}>Finish</Button> : <Button onClick={() => setCurrent((n) => n + 1)}>Next</Button>}</div></CardContent></Card></main>
 }
