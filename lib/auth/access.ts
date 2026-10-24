@@ -1,0 +1,76 @@
+// Pure access rules (no framework imports) so they can be unit-tested with `node --test`.
+
+export type AccountStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+export type AccountRole = 'admin' | 'candidate'
+
+export interface ProfileLike {
+  role?: string | null
+  status?: string | null
+}
+
+export const ACCOUNT_STATUSES: readonly AccountStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED']
+
+/** Unknown / missing values collapse to the most restrictive state. */
+export function normalizeStatus(value: string | null | undefined): AccountStatus {
+  const upper = (value ?? '').toUpperCase()
+  return (ACCOUNT_STATUSES as readonly string[]).includes(upper) ? (upper as AccountStatus) : 'PENDING'
+}
+
+export function normalizeRole(value: string | null | undefined): AccountRole {
+  return (value ?? '').toLowerCase() === 'admin' ? 'admin' : 'candidate'
+}
+
+export function isApproved(profile: ProfileLike | null | undefined) {
+  return !!profile && normalizeStatus(profile.status) === 'APPROVED'
+}
+
+/** An administrator must also be APPROVED; a suspended admin has no privileges. */
+export function isActiveAdmin(profile: ProfileLike | null | undefined) {
+  return isApproved(profile) && normalizeRole(profile?.role) === 'admin'
+}
+
+export const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/auth/callback']
+export const STATUS_PATHS: Record<Exclude<AccountStatus, 'APPROVED'>, string> = {
+  PENDING: '/pending',
+  REJECTED: '/rejected',
+  SUSPENDED: '/suspended',
+}
+
+function matches(pathname: string, base: string) {
+  return pathname === base || pathname.startsWith(`${base}/`)
+}
+
+/**
+ * Decide where a request should go. Returns a redirect path, or null to allow.
+ * `profile === null` means no profile row could be read: treated as PENDING.
+ */
+export function decideRedirect(pathname: string, signedIn: boolean, profile: ProfileLike | null): string | null {
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) return null
+  if (matches(pathname, '/auth/callback')) return null
+  if (matches(pathname, '/reset-password')) return signedIn ? null : '/forgot-password'
+
+  const isPublic = PUBLIC_PATHS.some((path) => matches(pathname, path))
+  if (!signedIn) return isPublic || pathname === '/' ? (pathname === '/' ? '/login' : null) : '/login'
+
+  const status = normalizeStatus(profile?.status)
+  if (status !== 'APPROVED') {
+    const target = STATUS_PATHS[status]
+    return pathname === target ? null : target
+  }
+
+  // Approved from here on.
+  if (isPublic || pathname === '/' || Object.values(STATUS_PATHS).includes(pathname)) {
+    return normalizeRole(profile?.role) === 'admin' ? '/admin' : '/dashboard'
+  }
+  if (matches(pathname, '/admin') && normalizeRole(profile?.role) !== 'admin') return '/dashboard'
+  return null
+}
+
+/** Admin changes allowed through the approval API. */
+export function canChangeStatus(actor: ProfileLike | null, actorId: string, targetId: string, next: string) {
+  if (!isActiveAdmin(actor)) return false
+  if (!(ACCOUNT_STATUSES as readonly string[]).includes(next)) return false
+  // An administrator must not lock themselves out.
+  if (actorId === targetId && next !== 'APPROVED') return false
+  return true
+}
