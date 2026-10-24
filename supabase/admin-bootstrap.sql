@@ -6,7 +6,7 @@
 insert into public.profiles (id, full_name, role, status)
 select id, coalesce(nullif(raw_user_meta_data ->> 'full_name', ''), 'Administrator'), 'admin', 'APPROVED'
 from auth.users
-where email = 'admin@example.com'
+where email = 'tizeahmed750@gmail.com'
 on conflict (id) do update
   set role = 'admin', status = 'APPROVED', updated_at = now();
 

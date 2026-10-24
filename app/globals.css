@@ -36,30 +36,30 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(.985 .004 260);
-  --foreground: oklch(.18 .025 260);
+  --background: oklch(.985 .004 255);
+  --foreground: oklch(.17 .03 258);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(.18 .025 260);
+  --card-foreground: oklch(.17 .03 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(.18 .025 260);
-  --primary: oklch(.5 .2 259);
-  --primary-foreground: oklch(.985 0 0);
+  --popover-foreground: oklch(.17 .03 258);
+  --primary: oklch(.47 .19 258);
+  --primary-foreground: oklch(.99 0 0);
   --secondary: oklch(.955 .012 255);
-  --secondary-foreground: oklch(.25 .04 258);
-  --muted: oklch(.955 .01 255);
-  --muted-foreground: oklch(.5 .03 258);
-  --accent: oklch(.95 .025 255);
-  --accent-foreground: oklch(.3 .12 259);
+  --secondary-foreground: oklch(.24 .04 258);
+  --muted: oklch(.958 .008 255);
+  --muted-foreground: oklch(.48 .03 258);
+  --accent: oklch(.945 .024 255);
+  --accent-foreground: oklch(.28 .12 258);
   --destructive: oklch(.52 .2 25);
-  --border: oklch(.9 .015 255);
-  --input: oklch(.86 .02 255);
-  --ring: oklch(.58 .17 259);
-  --chart-1: oklch(.5 .2 259);
-  --chart-2: oklch(.6 .16 245);
-  --chart-3: oklch(.5 .12 175);
-  --chart-4: oklch(.7 .15 80);
-  --chart-5: oklch(.6 .12 310);
-  --radius: .75rem;
+  --border: oklch(.895 .014 255);
+  --input: oklch(.86 .018 255);
+  --ring: oklch(.54 .18 258);
+  --chart-1: oklch(.48 .19 258);
+  --chart-2: oklch(.58 .15 235);
+  --chart-3: oklch(.52 .13 175);
+  --chart-4: oklch(.68 .15 80);
+  --chart-5: oklch(.58 .13 305);
+  --radius: .625rem;
 }
 
 .dark {
@@ -91,46 +91,111 @@
 
 * { @apply border-border outline-ring/50; }
 html { scroll-behavior: smooth; }
-body { @apply bg-background text-foreground antialiased; }
+body { @apply bg-background text-foreground antialiased selection:bg-primary/15 selection:text-primary; }
 button, a { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible, select:focus-visible { @apply outline-2 outline-offset-2 outline-ring; }
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ring;
+}
 
-.brand-mark { @apply flex size-9 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,.28)]; }
-.brand-mark span { transform: skew(-8deg); }
-.metric-card, .activity-row, .answer-option, .question-dot { transition: transform .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease; }
-.metric-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px color-mix(in oklch, var(--foreground) 8%, transparent); }
-.activity-row { @apply flex items-center gap-3 rounded-xl border border-transparent p-3; }
-.activity-row:hover { @apply border-border bg-secondary/60; }
-.auth-stage { @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--primary)_9%,transparent),transparent_55%)] px-4 py-8 sm:px-6; }
-.auth-card { @apply relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/70 bg-card shadow-[0_24px_70px_-20px_rgba(30,64,175,.35)] lg:grid-cols-[1.05fr_.95fr]; animation: reveal .45s ease-out both; }
-.auth-brand-panel { @apply relative hidden flex-col justify-between gap-10 overflow-hidden p-10 text-white lg:flex; background: linear-gradient(155deg, oklch(.32 .13 262), oklch(.45 .19 259) 55%, oklch(.55 .19 250)); }
-.auth-brand-panel::before { content: ''; position: absolute; right: -7rem; top: -8rem; width: 26rem; height: 26rem; border: 2.5rem solid rgba(255,255,255,.07); border-radius: 999px; pointer-events: none; }
-.auth-brand-panel::after { content: ''; position: absolute; left: -6rem; bottom: -9rem; width: 22rem; height: 22rem; border-radius: 999px; background: rgba(255,255,255,.06); pointer-events: none; }
+.brand-mark {
+  @apply flex size-9 items-center justify-center rounded-lg bg-primary text-xs font-black tracking-tight text-primary-foreground shadow-xs;
+}
+.brand-mark span { transform: skew(-6deg); }
+
+.metric-card, .activity-row, .answer-option, .question-dot {
+  transition: transform .15s ease, border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.metric-card:hover {
+  border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
+  box-shadow: 0 8px 24px -8px color-mix(in oklch, var(--primary) 12%, transparent);
+}
+.activity-row { @apply flex items-center gap-3 rounded-lg border border-border/60 bg-card p-3.5; }
+.activity-row:hover { @apply border-primary/40 bg-accent/40; }
+
+/* Public & Auth stages */
+.auth-stage {
+  @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--primary)_8%,transparent),transparent_55%)] px-4 py-8 sm:px-6;
+}
+.auth-card {
+  @apply relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-border bg-card shadow-[0_20px_60px_-20px_rgba(30,64,175,.25)] lg:grid-cols-[1.05fr_.95fr];
+  animation: reveal .35s ease-out both;
+}
+.auth-brand-panel {
+  @apply relative hidden flex-col justify-between gap-10 overflow-hidden p-10 text-white lg:flex;
+  background: linear-gradient(155deg, oklch(.28 .11 262), oklch(.42 .18 258) 55%, oklch(.51 .18 250));
+}
+.auth-brand-panel::before {
+  content: '';
+  position: absolute;
+  right: -7rem;
+  top: -8rem;
+  width: 26rem;
+  height: 26rem;
+  border: 2.5rem solid rgba(255,255,255,.06);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.auth-brand-panel::after {
+  content: '';
+  position: absolute;
+  left: -6rem;
+  bottom: -9rem;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  pointer-events: none;
+}
 .auth-form-panel { @apply flex flex-col justify-center gap-6 p-6 sm:p-10; }
 .auth-field { @apply flex flex-col gap-1.5; }
 .auth-field label { @apply text-sm font-medium text-foreground; }
-.auth-field input { @apply h-11 rounded-xl px-3.5 text-base md:text-sm; }
+.auth-field input { @apply h-10 rounded-lg px-3.5 text-base md:text-sm; }
 .auth-hint { @apply text-xs text-muted-foreground; }
 .auth-error { @apply text-xs font-medium text-destructive; }
-.auth-alert { @apply flex items-start gap-2.5 rounded-xl border p-3 text-sm; }
+.auth-alert { @apply flex items-start gap-2.5 rounded-lg border p-3 text-sm; }
 .auth-alert-error { @apply border-destructive/30 bg-destructive/10 text-destructive; }
 .auth-alert-success { @apply border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300; }
 .auth-alert-info { @apply border-primary/25 bg-accent text-accent-foreground; }
-.exam-stage { animation: reveal .35s ease-out both; }
-.timer-chip { @apply flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-semibold shadow-sm; }
-.exam-progress { @apply rounded-xl border bg-card p-4 shadow-sm; }
-.answer-option { @apply flex min-h-16 items-center gap-4 rounded-xl border border-border bg-card px-4 text-foreground shadow-sm; }
-.answer-option:hover { @apply -translate-y-px border-primary/50 bg-accent; }
-.answer-option-selected { @apply border-primary bg-accent shadow-[0_0_0_3px_color-mix(in_oklch,var(--primary)_12%,transparent)]; }
-.answer-key { @apply flex size-9 shrink-0 items-center justify-center rounded-lg border bg-secondary text-xs font-bold text-muted-foreground; }
-.answer-key-selected { @apply border-primary bg-primary text-primary-foreground; }
-.question-dot { @apply flex aspect-square items-center justify-center rounded-lg border bg-card text-xs font-semibold text-muted-foreground; }
-.question-dot:hover { @apply border-primary text-primary; }
-.question-dot-current { @apply border-primary bg-primary text-primary-foreground shadow-[0_3px_10px_color-mix(in_oklch,var(--primary)_30%,transparent)]; }
-.question-dot-answered { @apply border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300; }
-.legend-dot { @apply mr-1 inline-block size-2 rounded-full; }
-.legend-dot.border { @apply bg-card; }
-.result-score-card { @apply border-0 bg-slate-950 text-white shadow-sm; }
 
-@keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+/* Dedicated Exam Workspace classes */
+.exam-stage { animation: reveal .25s ease-out both; }
+.timer-chip { @apply flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm font-semibold tabular-nums shadow-2xs; }
+.exam-progress { @apply rounded-xl border bg-card p-4 shadow-2xs; }
+.answer-option {
+  @apply flex min-h-14 w-full items-start gap-3.5 rounded-xl border border-border bg-card p-4 text-left text-sm text-foreground shadow-2xs;
+}
+.answer-option:hover:not(:disabled) { @apply border-primary/50 bg-accent/50; }
+.answer-option-selected {
+  @apply border-primary bg-accent/80 shadow-[0_0_0_2px_color-mix(in_oklch,var(--primary)_18%,transparent)];
+}
+.answer-key {
+  @apply flex size-7 shrink-0 items-center justify-center rounded-md border bg-secondary text-xs font-bold text-muted-foreground;
+}
+.answer-key-selected { @apply border-primary bg-primary text-primary-foreground; }
+.question-dot {
+  @apply relative flex aspect-square items-center justify-center rounded-lg border bg-card text-xs font-semibold tabular-nums text-muted-foreground;
+}
+.question-dot:hover { @apply border-primary text-primary; }
+.question-dot-current {
+  @apply ring-2 ring-primary ring-offset-1 border-primary font-bold text-primary;
+}
+.question-dot-answered {
+  @apply border-primary/40 bg-primary/12 text-primary font-semibold;
+}
+.question-dot-flagged {
+  @apply border-amber-500/60 bg-amber-500/15 text-amber-800 dark:text-amber-300;
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
