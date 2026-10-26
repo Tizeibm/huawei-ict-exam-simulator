@@ -457,7 +457,7 @@ export function ExamWorkspace() {
       <div className="exam-stage flex min-h-[calc(100vh-4rem)] flex-col bg-background">
         {/* Sticky Exam Workspace Bar */}
         <div className="sticky top-14 z-20 border-b bg-card/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-col items-stretch justify-between gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3 sm:px-6">
             <div className="flex items-center gap-3">
               <Badge variant="default" className="uppercase tracking-wider">
                 {activeAttempt.mode === 'FULL'
