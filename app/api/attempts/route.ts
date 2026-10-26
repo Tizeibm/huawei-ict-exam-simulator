@@ -6,9 +6,11 @@ import {
   PRACTICE_MAX_QUESTIONS,
   QUESTION_TYPES,
   TOPICS,
+  type CompetitionRound,
   type ExamMode,
   type QuestionType,
   type Topic,
+  type Track,
 } from '@/lib/exam/config'
 import {
   blueprintShortages,
@@ -31,6 +33,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const startAttemptSchema = z.object({
   mode: z.enum(['FULL', 'PRACTICE', 'REVIEW']),
+  track: z.enum(['COMPUTING', 'NETWORK']).default('COMPUTING'),
+  competitionRound: z.enum(['PRELIMINARY', 'NATIONAL']).default('PRELIMINARY'),
   topics: z.array(z.enum(['OPENEULER', 'OPENGAUSS', 'KUNPENG'])).min(1).optional(),
   types: z.array(z.enum(['SINGLE', 'MULTIPLE', 'BOOLEAN'])).min(1).optional(),
   count: z.number().int().min(1).max(PRACTICE_MAX_QUESTIONS).optional(),
@@ -49,25 +53,32 @@ const legacyDirectSubmitSchema = z.object({
   timeUsedSeconds: z.number().int().min(0).optional(),
 })
 
-async function loadExamReadyQuestions(privileged: ReturnType<typeof createAdminClient>): Promise<GradableQuestion[]> {
+async function loadExamReadyQuestions(
+  privileged: ReturnType<typeof createAdminClient>,
+  track: Track = 'COMPUTING',
+  competitionRound: CompetitionRound = 'PRELIMINARY',
+): Promise<GradableQuestion[]> {
   const { data, error } = await privileged
     .from('questions')
-    .select('id, topic, type, question_text, options, correct_answers, explanation')
+    .select('id, topic, type, question_text, options, correct_answers, explanation, track, round_suitability, is_active')
+    .eq('track', track)
+    .eq('is_active', true)
     .limit(3000)
 
   if (error || !data) throw new Error('Unable to load question bank.')
 
   return data
-    .filter((q) =>
-      isExamReady({
+    .filter((q) => {
+      const rounds = Array.isArray(q.round_suitability) ? q.round_suitability : ['PRELIMINARY', 'NATIONAL']
+      return rounds.includes(competitionRound) && isExamReady({
         topic: q.topic,
         type: q.type,
         question_text: q.question_text,
         options: q.options as Record<string, string> | null,
         correct_answers: q.correct_answers as string[] | null,
         explanation: q.explanation,
-      }),
-    )
+      })
+    })
     .map((q) => ({
       id: q.id,
       topic: q.topic as Topic,
@@ -97,7 +108,7 @@ export async function GET() {
 
   try {
     const [allQuestions, attemptsRes] = await Promise.all([
-      loadExamReadyQuestions(privileged),
+      loadExamReadyQuestions(privileged, 'COMPUTING', 'PRELIMINARY'),
       privileged
         .from('exam_attempts')
         .select('id, user_id, score, total, details, created_at')
@@ -301,7 +312,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const allQuestions = await loadExamReadyQuestions(privileged)
+    const { track, competitionRound } = parsedStart.data
+    const allQuestions = await loadExamReadyQuestions(privileged, track, competitionRound)
     if (allQuestions.length === 0) {
       return NextResponse.json(
         { error: 'The question bank does not contain any valid exam-ready questions yet.' },
