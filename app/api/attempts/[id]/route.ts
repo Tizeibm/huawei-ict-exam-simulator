@@ -105,10 +105,11 @@ async function finalizeAttemptOnServer(
       score: graded.score,
       total: graded.total,
       details: packed,
+      submitted_at: nowIso,
     })
     .eq('id', attempt.id)
     .eq('user_id', attempt.user_id)
-    .select('id, user_id, score, total, details, created_at')
+    .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
     .single()
 
   if (error || !updated) {
@@ -131,7 +132,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const privileged = createAdminClient()
   const { data: row, error } = await privileged
     .from('exam_attempts')
-    .select('id, user_id, score, total, details, created_at')
+    .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle()
@@ -175,7 +176,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const { data: allUserAttempts } = await privileged
     .from('exam_attempts')
-    .select('id, user_id, score, total, details, created_at')
+    .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
     .eq('user_id', auth.user.id)
     .order('created_at', { ascending: true })
     .limit(100)
@@ -230,7 +231,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const privileged = createAdminClient()
   const { data: row, error } = await privileged
     .from('exam_attempts')
-    .select('id, user_id, score, total, details, created_at')
+    .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
     .eq('id', id)
     .eq('user_id', auth.user.id)
     .maybeSingle()
@@ -275,7 +276,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     })
     await privileged
       .from('exam_attempts')
-      .update({ details: abandonedDetails })
+      .update({ details: abandonedDetails, submitted_at: new Date(nowMs).toISOString() })
       .eq('id', attempt.id)
       .eq('user_id', auth.user.id)
     return NextResponse.json({ ok: true, status: 'ABANDONED' })

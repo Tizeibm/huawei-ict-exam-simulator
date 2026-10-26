@@ -111,7 +111,7 @@ export async function GET() {
       loadExamReadyQuestions(privileged, 'COMPUTING', 'PRELIMINARY'),
       privileged
         .from('exam_attempts')
-        .select('id, user_id, score, total, details, created_at')
+        .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
         .eq('user_id', auth.user.id)
         .order('created_at', { ascending: false })
         .limit(50),
@@ -166,6 +166,7 @@ export async function GET() {
               score: graded.score,
               total: graded.total,
               details: packed,
+              submitted_at: nowIso,
             })
             .eq('id', inProgress.id)
             .eq('user_id', auth.user.id)
@@ -291,6 +292,10 @@ export async function POST(request: Request) {
         score: graded.score,
         total: graded.total,
         details: packed,
+        track: 'COMPUTING',
+        competition_round: 'PRELIMINARY',
+        exam_mode: parsedLegacy.data.mode,
+        submitted_at: nowIso,
       })
       .select('id, score, total')
       .single()
@@ -329,7 +334,7 @@ export async function POST(request: Request) {
     // Load recent user attempts using only guaranteed base columns
     const { data: historyRaw } = await privileged
       .from('exam_attempts')
-      .select('id, user_id, score, total, details, created_at')
+        .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
       .eq('user_id', auth.user.id)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -460,6 +465,10 @@ export async function POST(request: Request) {
         score: 0,
         total: orderedQuestions.length,
         details: initialEnvelope,
+        track,
+        competition_round: competitionRound,
+        exam_mode: mode,
+        duration_seconds: durationSeconds,
       })
       .select('id')
       .single()
