@@ -57,34 +57,34 @@ export default async function HomePage() {
             <span className="brand-mark" aria-hidden="true">
               <span>ICT</span>
             </span>
-            <div>
+            <div className="min-w-0">
               <span className="block text-base font-bold tracking-tight">ICT Prep</span>
-              <span className="block text-[11px] text-muted-foreground">Huawei ICT Competition · Computing Track</span>
+              <span className="hidden text-[11px] text-muted-foreground sm:block">Huawei ICT Competition · Computing Track</span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             {user && isApproved ? (
               <>
-                <Link href="/dashboard" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                <Link href="/dashboard" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'hidden sm:inline-flex' })}>
                   Candidate Dashboard
                 </Link>
                 {isAdmin && (
-                  <Link href="/admin" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+                  <Link href="/admin" className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'hidden md:inline-flex' })}>
                     Admin Console
                   </Link>
                 )}
-                <Link href="/exam" className={buttonVariants({ size: 'sm' })}>
-                  Exam Workspace <ArrowRight className="size-3.5" />
+                <Link href="/exam" className={buttonVariants({ size: 'sm', className: 'px-2.5 sm:px-3' })}>
+                  <span className="hidden sm:inline">Exam Workspace </span><ArrowRight className="size-3.5" />
                 </Link>
               </>
             ) : (
               <>
-                <Link href="/login" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                <Link href="/login" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'px-2.5 sm:px-3' })}>
                   Sign in
                 </Link>
-                <Link href="/signup" className={buttonVariants({ size: 'sm' })}>
-                  Request access <ArrowRight className="size-3.5" />
+                <Link href="/signup" className={buttonVariants({ size: 'sm', className: 'px-2.5 sm:px-3' })}>
+                  <span className="hidden sm:inline">Request access </span><ArrowRight className="size-3.5" />
                 </Link>
               </>
             )}
@@ -143,16 +143,16 @@ export default async function HomePage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 border-t pt-6 sm:max-w-lg">
-                  <div>
+                <div className="grid grid-cols-1 gap-4 border-t pt-6 sm:max-w-lg sm:grid-cols-3">
+                  <div className="min-w-0">
                     <p className="text-2xl font-bold text-primary tabular-nums">{totalQuestions} Questions</p>
                     <p className="text-xs text-muted-foreground">Configured full blueprint</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-2xl font-bold text-primary tabular-nums">{FULL_EXAM_DURATION_MINUTES} Minutes</p>
                     <p className="text-xs text-muted-foreground">Server-enforced timer</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-2xl font-bold text-primary tabular-nums">3 Technologies</p>
                     <p className="text-xs text-muted-foreground">openEuler, openGauss, Kunpeng</p>
                   </div>
