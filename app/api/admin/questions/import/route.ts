@@ -17,8 +17,15 @@ export async function POST(request: Request) {
   try { payload = await request.json() } catch { return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 }) }
   const parsed = payloadSchema.safeParse(payload)
   if (!parsed.success) return NextResponse.json({ error: 'Invalid question import payload.', issues: parsed.error.flatten() }, { status: 400 })
-  if (parsed.data.metadata && parsed.data.metadata.track !== parsed.data.questions[0].track) return NextResponse.json({ error: 'Metadata track does not match the imported questions.' }, { status: 400 })
-  if (parsed.data.metadata && parsed.data.metadata.round && !parsed.data.questions.every((question) => question.round_suitability.includes(parsed.data.metadata!.round))) return NextResponse.json({ error: 'Every question must be compatible with the metadata round.' }, { status: 400 })
+  if (parsed.data.metadata) {
+    const metadata = parsed.data.metadata
+    const expectedTrack = metadata.bank_id.startsWith('COMPUTING_') ? 'COMPUTING' : 'NETWORK'
+    const expectedRound = metadata.bank_id.endsWith('_PRELIMINARY') ? 'PRELIMINARY' : 'NATIONAL'
+    if (metadata.track !== expectedTrack || metadata.round !== expectedRound) return NextResponse.json({ error: `bank_id ${metadata.bank_id} is inconsistent with track ${metadata.track} and round ${metadata.round}.` }, { status: 400 })
+    if (!parsed.data.questions.every((question) => question.track === metadata.track)) return NextResponse.json({ error: 'Every question must match the metadata track.' }, { status: 400 })
+    if (!parsed.data.questions.every((question) => question.round_suitability.includes(metadata.round))) return NextResponse.json({ error: 'Every question must be compatible with the metadata round.' }, { status: 400 })
+    if (metadata.generation_batch && metadata.generation_batches_total && metadata.generation_batch > metadata.generation_batches_total) return NextResponse.json({ error: 'generation_batch cannot exceed generation_batches_total.' }, { status: 400 })
+  }
 
   let privileged
   try { privileged = createAdminClient() } catch { return NextResponse.json({ error: 'Server service-role configuration is missing.' }, { status: 500 }) }

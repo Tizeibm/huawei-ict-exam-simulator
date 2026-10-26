@@ -4,7 +4,7 @@ import { questionIssues } from './exam/quality'
 const enumValue = (values: readonly string[]) => z.preprocess((value) => (typeof value === 'string' ? value.trim().toUpperCase() : value), z.enum(values as [string, ...string[]]))
 
 export const importMetadataSchema = z.object({
-  bank_id: z.string().trim().min(1).optional(),
+  bank_id: enumValue(['COMPUTING_PRELIMINARY', 'NETWORK_PRELIMINARY', 'COMPUTING_NATIONAL', 'NETWORK_NATIONAL']),
   track: enumValue(['COMPUTING', 'NETWORK']),
   round: enumValue(['PRELIMINARY', 'NATIONAL']),
   language: z.string().trim().regex(/^[a-z]{2}(-[A-Z]{2})?$/, 'Language must be a valid language code.'),
@@ -28,12 +28,12 @@ const optionsSchema = z.union([
 
 export const singleQuestionSchema = z.object({
   external_id: z.string().trim().min(1).max(160).optional(),
-  track: enumValue(['COMPUTING', 'NETWORK']).optional(),
-  certification_level: enumValue(['HCIA', 'HCIP']).optional().default('HCIA'),
-  technology: z.string().trim().min(1).max(80).optional(),
+  track: enumValue(['COMPUTING', 'NETWORK']),
+  certification_level: enumValue(['HCIA', 'HCIP']),
+  technology: z.string().trim().min(1).max(80),
   topic: z.string().trim().min(1).max(120),
-  round_suitability: z.array(enumValue(['PRELIMINARY', 'NATIONAL'])).min(1).optional(),
-  difficulty: difficultySchema.optional().default('FOUNDATION'),
+  round_suitability: z.array(enumValue(['PRELIMINARY', 'NATIONAL'])).min(1),
+  difficulty: difficultySchema,
   type: enumValue(['SINGLE', 'MULTIPLE', 'BOOLEAN']).optional(),
   question_type: enumValue(['SINGLE', 'MULTIPLE', 'BOOLEAN']).optional(),
   language: z.string().trim().regex(/^[a-z]{2}(-[A-Z]{2})?$/).optional().default('en'),
@@ -49,6 +49,8 @@ export const singleQuestionSchema = z.object({
 }).superRefine((question, ctx) => {
   const type = question.question_type ?? question.type
   if (!type) ctx.addIssue({ code: 'custom', path: ['question_type'], message: 'question_type is required.' })
+  if (!question.type && !question.question_type) return
+  if (question.round_suitability.length > 2) ctx.addIssue({ code: 'custom', path: ['round_suitability'], message: 'round_suitability may contain PRELIMINARY, NATIONAL, or both.' })
   if (question.type && question.question_type && question.type !== question.question_type) ctx.addIssue({ code: 'custom', path: ['question_type'], message: 'type and question_type must match.' })
   const optionKeys = Object.keys(question.options)
   if (new Set(optionKeys).size !== optionKeys.length || optionKeys.length < 2) ctx.addIssue({ code: 'custom', path: ['options'], message: 'Options must contain at least two unique IDs.' })
