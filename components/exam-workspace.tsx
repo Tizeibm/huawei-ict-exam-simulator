@@ -91,6 +91,8 @@ export function ExamWorkspace() {
   const searchParams = useSearchParams()
   const initialModeParam = searchParams.get('mode')?.toUpperCase()
   const initialTopicParam = searchParams.get('topic')?.toUpperCase()
+  const initialTrackParam = searchParams.get('track')?.toUpperCase()
+  const initialRoundParam = searchParams.get('competitionRound')?.toUpperCase()
 
   const [setupData, setSetupData] = useState<SetupOverview | null>(null)
   const [loadingSetup, setLoadingSetup] = useState(true)
@@ -100,8 +102,8 @@ export function ExamWorkspace() {
   const [selectedMode, setSelectedMode] = useState<ExamMode>(
     initialModeParam === 'PRACTICE' || initialModeParam === 'REVIEW' ? initialModeParam : 'FULL',
   )
-  const [selectedTrack, setSelectedTrack] = useState<Track>('COMPUTING')
-  const [selectedRound, setSelectedRound] = useState<CompetitionRound>('PRELIMINARY')
+  const [selectedTrack, setSelectedTrack] = useState<Track>(initialTrackParam === 'NETWORK' ? 'NETWORK' : 'COMPUTING')
+  const [selectedRound, setSelectedRound] = useState<CompetitionRound>(initialRoundParam === 'NATIONAL' ? 'NATIONAL' : 'PRELIMINARY')
   const [practiceTopics, setPracticeTopics] = useState<Topic[]>(
     initialTopicParam && (TOPICS as readonly string[]).includes(initialTopicParam)
       ? [initialTopicParam as Topic]

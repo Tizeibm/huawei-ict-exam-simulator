@@ -42,18 +42,18 @@
   --card-foreground: oklch(.17 .03 258);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(.17 .03 258);
-  --primary: oklch(.47 .19 258);
+  --primary: oklch(.53 .21 28);
   --primary-foreground: oklch(.99 0 0);
   --secondary: oklch(.955 .012 255);
   --secondary-foreground: oklch(.24 .04 258);
   --muted: oklch(.958 .008 255);
   --muted-foreground: oklch(.48 .03 258);
   --accent: oklch(.945 .024 255);
-  --accent-foreground: oklch(.28 .12 258);
+  --accent-foreground: oklch(.34 .15 28);
   --destructive: oklch(.52 .2 25);
   --border: oklch(.895 .014 255);
   --input: oklch(.86 .018 255);
-  --ring: oklch(.54 .18 258);
+  --ring: oklch(.58 .19 28);
   --chart-1: oklch(.48 .19 258);
   --chart-2: oklch(.58 .15 235);
   --chart-3: oklch(.52 .13 175);
@@ -70,18 +70,18 @@
   --card-foreground: oklch(.96 .006 260);
   --popover: oklch(.19 .02 260);
   --popover-foreground: oklch(.96 .006 260);
-  --primary: oklch(.62 .19 259);
+  --primary: oklch(.68 .19 28);
   --primary-foreground: oklch(.985 0 0);
   --secondary: oklch(.24 .022 260);
   --secondary-foreground: oklch(.94 .006 260);
   --muted: oklch(.24 .022 260);
   --muted-foreground: oklch(.7 .018 260);
-  --accent: oklch(.27 .05 259);
+  --accent: oklch(.27 .05 28);
   --accent-foreground: oklch(.92 .04 259);
   --destructive: oklch(.62 .2 25);
   --border: oklch(1 0 0 / 11%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(.65 .16 259);
+  --ring: oklch(.7 .16 28);
   --chart-1: oklch(.62 .19 259);
   --chart-2: oklch(.68 .15 245);
   --chart-3: oklch(.62 .12 175);
@@ -131,7 +131,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 
 /* Public & Auth stages */
 .auth-stage {
-  @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--primary)_8%,transparent),transparent_55%)] px-4 py-8 sm:px-6;
+  @apply relative flex min-h-screen items-center justify-center overflow-hidden bg-muted/30 px-4 py-8 sm:px-6;
 }
 .auth-card {
   @apply relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-border bg-card shadow-[0_20px_60px_-20px_rgba(30,64,175,.25)] lg:grid-cols-[1.05fr_.95fr];
@@ -139,7 +139,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 }
 .auth-brand-panel {
   @apply relative hidden flex-col justify-between gap-10 overflow-hidden p-10 text-white lg:flex;
-  background: linear-gradient(155deg, oklch(.28 .11 262), oklch(.42 .18 258) 55%, oklch(.51 .18 250));
+  background: oklch(.24 .03 28);
 }
 .auth-brand-panel::before {
   content: '';

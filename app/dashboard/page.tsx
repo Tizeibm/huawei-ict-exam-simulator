@@ -27,6 +27,8 @@ import {
 } from '@/lib/exam/analytics'
 import {
   SIMULATOR_PASS_PERCENT,
+  ROUND_LABELS,
+  TRACK_LABELS,
   TOPIC_LABELS,
   TOPICS,
   type Topic,
@@ -148,6 +150,32 @@ export default async function DashboardPage() {
             )}
           </div>
         )}
+
+        <section aria-labelledby="question-banks-heading" className="flex flex-col gap-4">
+          <div>
+            <h2 id="question-banks-heading" className="text-xl font-bold tracking-tight">Practice by competition path</h2>
+            <p className="text-sm text-muted-foreground">Choose a question bank without changing track or round by accident.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {([
+              ['COMPUTING', 'PRELIMINARY'],
+              ['NETWORK', 'PRELIMINARY'],
+              ['COMPUTING', 'NATIONAL'],
+              ['NETWORK', 'NATIONAL'],
+            ] as const).map(([track, round]) => (
+              <Link key={`${track}-${round}`} href={`/exam?track=${track}&competitionRound=${round}`} className="group rounded-xl border bg-card p-4 shadow-2xs transition-colors hover:border-primary/50 hover:bg-accent/40">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold">{TRACK_LABELS[track]}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{ROUND_LABELS[round]}</p>
+                  </div>
+                  <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <p className="mt-5 text-xs font-medium text-primary">Open practice bank</p>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         <section aria-label="Personal performance summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="metric-card">

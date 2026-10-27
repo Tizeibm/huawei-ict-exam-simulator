@@ -508,7 +508,7 @@ export function AdminConsole() {
           </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Administrator Console</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Manage user approvals, create accounts, curate the Computing Track question bank, and participate in full simulated or practice exams under your own profile.
+            Manage user approvals, curate the four track and round question banks, review imports, and configure credible examination practice under your own profile.
           </p>
         </div>
 

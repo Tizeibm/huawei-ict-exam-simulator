@@ -59,7 +59,7 @@ export default async function HomePage() {
             </span>
             <div className="min-w-0">
               <span className="block text-base font-bold tracking-tight">ICT Prep</span>
-              <span className="hidden text-[11px] text-muted-foreground sm:block">Huawei ICT Competition · Computing Track</span>
+              <span className="hidden text-[11px] text-muted-foreground sm:block">Huawei ICT Competition · Computing and Network Tracks</span>
             </div>
           </Link>
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
               <div className="flex flex-col gap-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="default" className="uppercase tracking-wider text-[11px]">
-                    Computing Track Simulator
+Competition Track Simulator
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     openEuler · openGauss · Kunpeng
@@ -108,7 +108,7 @@ export default async function HomePage() {
                 </div>
 
                 <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-                  Structured Exam Preparation for the Huawei ICT Competition Computing Track
+                  Structured Exam Preparation for the Huawei ICT Competition
                 </h1>
 
                 <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -229,7 +229,7 @@ export default async function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <div className="mb-8 flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Core Curriculum</p>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Computing Track Technologies</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Competition Technologies</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
               Every simulated exam and practice session tracks your accuracy independently across the three core technologies.
             </p>
