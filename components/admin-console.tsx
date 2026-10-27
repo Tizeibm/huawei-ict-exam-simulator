@@ -113,6 +113,7 @@ export function AdminConsole() {
   const [candidates, setCandidates] = useState<AdminCandidate[]>([])
   const [questions, setQuestions] = useState<AdminQuestion[]>([])
   const [poolCounts, setPoolCounts] = useState<Record<Topic, Record<QuestionType, number>> | null>(null)
+  const [bankCounts, setBankCounts] = useState<Record<string, number>>({})
   const [shortages, setShortages] = useState<Shortage[]>([])
   const [qualitySummary, setQualitySummary] = useState<QualitySummary | null>(null)
   const [me, setMe] = useState('')
@@ -175,6 +176,7 @@ export function AdminConsole() {
       setCandidates(data.candidates ?? [])
       setQuestions(data.questions ?? [])
       setPoolCounts(data.poolCounts ?? null)
+      setBankCounts(data.bankCounts ?? {})
       setShortages(data.shortages ?? [])
       setQualitySummary(data.qualitySummary ?? null)
       setMe(data.currentUserId ?? '')
@@ -1548,9 +1550,33 @@ export function AdminConsole() {
       {/* TAB 4: BLUEPRINT & QUALITY MATRIX */}
       {tab === 'blueprint' && (
         <section className="flex flex-col gap-5" role="tabpanel">
-          <Card>
-            <CardHeader className="border-b">
-              <CardTitle className="text-lg font-bold">Full-Exam Blueprint & Question Bank Coverage</CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-bold">Four Competition Banks</CardTitle>
+                <CardDescription>Coverage is calculated from active questions classified for each track and competition round.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 pt-0 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['COMPUTING_PRELIMINARY', 'Computing', 'Preliminary'],
+                  ['NETWORK_PRELIMINARY', 'Network', 'Preliminary'],
+                  ['COMPUTING_NATIONAL', 'Computing', 'National'],
+                  ['NETWORK_NATIONAL', 'Network', 'National'],
+                ].map(([key, track, round]) => (
+                  <div key={key} className="rounded-lg border bg-muted/20 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold">{track}</p>
+                      <Badge variant={round === 'National' ? 'default' : 'secondary'}>{round}</Badge>
+                    </div>
+                    <p className="mt-4 text-2xl font-bold tabular-nums">{bankCounts[key] ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">active classified questions</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="border-b">
+                <CardTitle className="text-lg font-bold">Full-Exam Blueprint & Question Bank Coverage</CardTitle>
               <CardDescription>
                 Compares available exam-ready questions in Supabase against the configured 60-question Full Exam Simulation blueprint.
               </CardDescription>

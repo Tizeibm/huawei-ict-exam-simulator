@@ -22,7 +22,7 @@ export async function GET() {
     privileged.from('profiles').select('id, full_name, status, role, created_at, updated_at').order('created_at', { ascending: false }),
     privileged
       .from('questions')
-      .select('id, topic, type, question_text, options, correct_answers, explanation')
+      .select('id, topic, type, question_text, options, correct_answers, explanation, track, round_suitability, difficulty, is_active, review_status, certification_level, technology')
       .limit(2000),
     privileged
       .from('exam_attempts')
@@ -105,6 +105,19 @@ export async function GET() {
     .filter((q) => q.examReady)
     .map((q) => ({ id: q.id, topic: q.topic, type: q.type }))
 
+  const bankPaths = [
+    ['COMPUTING', 'PRELIMINARY'],
+    ['NETWORK', 'PRELIMINARY'],
+    ['COMPUTING', 'NATIONAL'],
+    ['NETWORK', 'NATIONAL'],
+  ] as const
+  const bankCounts = Object.fromEntries(
+    bankPaths.map(([track, round]) => [
+      `${track}_${round}`,
+      rawQuestions.filter((q) => q.track === track && q.is_active !== false && Array.isArray(q.round_suitability) && q.round_suitability.includes(round)).length,
+    ]),
+  )
+
   const poolCounts = countPool(readyPool)
   const shortages = blueprintShortages(readyPool)
 
@@ -112,6 +125,7 @@ export async function GET() {
     candidates,
     questions,
     poolCounts,
+    bankCounts,
     shortages,
     qualitySummary: {
       totalQuestions: questions.length,
