@@ -33,6 +33,10 @@ import {
   QUESTION_TYPES,
   TOPIC_LABELS,
   TOPICS,
+  ROUND_LABELS,
+  TRACK_LABELS,
+  type CompetitionRound,
+  type Track,
   TYPE_LABELS,
   type ExamMode,
   type QuestionType,
@@ -87,6 +91,8 @@ export function ExamWorkspace() {
   const searchParams = useSearchParams()
   const initialModeParam = searchParams.get('mode')?.toUpperCase()
   const initialTopicParam = searchParams.get('topic')?.toUpperCase()
+  const initialTrackParam = searchParams.get('track')?.toUpperCase()
+  const initialRoundParam = searchParams.get('competitionRound')?.toUpperCase()
 
   const [setupData, setSetupData] = useState<SetupOverview | null>(null)
   const [loadingSetup, setLoadingSetup] = useState(true)
@@ -96,6 +102,8 @@ export function ExamWorkspace() {
   const [selectedMode, setSelectedMode] = useState<ExamMode>(
     initialModeParam === 'PRACTICE' || initialModeParam === 'REVIEW' ? initialModeParam : 'FULL',
   )
+  const [selectedTrack, setSelectedTrack] = useState<Track>(initialTrackParam === 'NETWORK' ? 'NETWORK' : 'COMPUTING')
+  const [selectedRound, setSelectedRound] = useState<CompetitionRound>(initialRoundParam === 'NATIONAL' ? 'NATIONAL' : 'PRELIMINARY')
   const [practiceTopics, setPracticeTopics] = useState<Topic[]>(
     initialTopicParam && (TOPICS as readonly string[]).includes(initialTopicParam)
       ? [initialTopicParam as Topic]
@@ -217,10 +225,12 @@ export function ExamWorkspace() {
     try {
       const payload =
         selectedMode === 'FULL'
-          ? { mode: 'FULL' as const }
+          ? { mode: 'FULL' as const, track: selectedTrack, competitionRound: selectedRound }
           : selectedMode === 'PRACTICE'
             ? {
                 mode: 'PRACTICE' as const,
+                track: selectedTrack,
+                competitionRound: selectedRound,
                 topics: practiceTopics,
                 types: practiceTypes,
                 count: practiceCount,
@@ -229,6 +239,8 @@ export function ExamWorkspace() {
               }
             : {
                 mode: 'REVIEW' as const,
+                track: selectedTrack,
+                competitionRound: selectedRound,
                 topics: practiceTopics,
                 count: practiceCount,
                 immediateFeedback: true,
@@ -960,6 +972,21 @@ export function ExamWorkspace() {
       )}
 
       {/* Mode Selection Cards */}
+      <section aria-label="Exam profile" className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-semibold">
+          Track
+          <select className="h-10 rounded-md border bg-background px-3 text-sm font-normal" value={selectedTrack} onChange={(event) => setSelectedTrack(event.target.value as Track)}>
+            {(Object.keys(TRACK_LABELS) as Track[]).map((track) => <option key={track} value={track}>{TRACK_LABELS[track]}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-semibold">
+          Competition round
+          <select className="h-10 rounded-md border bg-background px-3 text-sm font-normal" value={selectedRound} onChange={(event) => setSelectedRound(event.target.value as CompetitionRound)}>
+            {(Object.keys(ROUND_LABELS) as CompetitionRound[]).map((round) => <option key={round} value={round}>{ROUND_LABELS[round]}</option>)}
+          </select>
+        </label>
+      </section>
+
       <section aria-label="Select examination mode" className="grid gap-4 md:grid-cols-3">
         <button
           type="button"

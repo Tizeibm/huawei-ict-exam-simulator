@@ -59,7 +59,7 @@ export default async function HomePage() {
             </span>
             <div className="min-w-0">
               <span className="block text-base font-bold tracking-tight">ICT Prep</span>
-              <span className="hidden text-[11px] text-muted-foreground sm:block">Huawei ICT Competition · Computing Track</span>
+              <span className="hidden text-[11px] text-muted-foreground sm:block">Huawei ICT Competition · Computing and Network Tracks</span>
             </div>
           </Link>
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
               <div className="flex flex-col gap-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="default" className="uppercase tracking-wider text-[11px]">
-                    Computing Track Simulator
+Competition Track Simulator
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     openEuler · openGauss · Kunpeng
@@ -108,7 +108,7 @@ export default async function HomePage() {
                 </div>
 
                 <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-                  Structured Exam Preparation for the Huawei ICT Competition Computing Track
+                  Structured Exam Preparation for the Huawei ICT Competition
                 </h1>
 
                 <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -225,11 +225,39 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* Track and round paths */}
+        <section className="border-t bg-muted/20 py-14">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="mb-8 flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Competition Paths</p>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Choose your track and round</h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">Practice with the correct question bank for Computing or Network, then prepare for the Preliminary or National round.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {([
+                ['COMPUTING', 'PRELIMINARY', 'Computing Track', 'Preliminary preparation'],
+                ['NETWORK', 'PRELIMINARY', 'Network Track', 'Preliminary preparation'],
+                ['COMPUTING', 'NATIONAL', 'Computing Track', 'National preparation'],
+                ['NETWORK', 'NATIONAL', 'Network Track', 'National preparation'],
+              ] as const).map(([track, round, label, description]) => (
+                <Link key={`${track}-${round}`} href={`/exam?track=${track}&competitionRound=${round}`} className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/60 hover:bg-accent/30">
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge variant={round === 'NATIONAL' ? 'default' : 'secondary'}>{round === 'NATIONAL' ? 'National' : 'Preliminary'}</Badge>
+                    <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-6 font-bold">{label}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Three Technologies Section */}
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <div className="mb-8 flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Core Curriculum</p>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Computing Track Technologies</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Competition Technologies</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
               Every simulated exam and practice session tracks your accuracy independently across the three core technologies.
             </p>
@@ -325,7 +353,7 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 text-xs text-muted-foreground sm:px-6">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-            <span>ICT Prep · Controlled-Access Huawei ICT Competition Computing Track Simulator</span>
+            <span>ICT Prep · Controlled-Access Huawei ICT Competition Track Simulator</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="hover:text-foreground hover:underline">Sign in</Link>

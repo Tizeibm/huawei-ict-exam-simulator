@@ -27,6 +27,8 @@ import {
 } from '@/lib/exam/analytics'
 import {
   SIMULATOR_PASS_PERCENT,
+  ROUND_LABELS,
+  TRACK_LABELS,
   TOPIC_LABELS,
   TOPICS,
   type Topic,
@@ -46,15 +48,25 @@ export default async function DashboardPage() {
   const { user, profile, isAdmin } = await getCurrentUserContext()
   const privileged = createAdminClient()
 
+  const bankPaths = [
+    ['COMPUTING', 'PRELIMINARY'],
+    ['NETWORK', 'PRELIMINARY'],
+    ['COMPUTING', 'NATIONAL'],
+    ['NETWORK', 'NATIONAL'],
+  ] as const
+
   const [attemptsRes, ...topicCountResponses] = await Promise.all([
     privileged
       .from('exam_attempts')
-      .select('id, user_id, score, total, details, created_at')
+      .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, submitted_at')
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(50),
     ...TOPICS.map((topic) =>
       privileged.from('questions').select('id', { count: 'exact', head: true }).eq('topic', topic),
+    ),
+    ...bankPaths.map(([track, round]) =>
+      privileged.from('questions').select('id', { count: 'exact', head: true }).eq('track', track).contains('round_suitability', [round]).eq('is_active', true),
     ),
   ])
 
@@ -70,7 +82,10 @@ export default async function DashboardPage() {
   const questionCountsByTopic = Object.fromEntries(
     TOPICS.map((topic, idx) => [topic, topicCountResponses[idx]?.count ?? 0]),
   ) as Record<Topic, number>
-  const totalQuestionsInBank = Object.values(questionCountsByTopic).reduce((a, b) => a + b, 0)
+  const bankCounts = Object.fromEntries(
+    bankPaths.map(([track, round], idx) => [`${track}_${round}`, topicCountResponses[TOPICS.length + idx]?.count ?? 0]),
+  ) as Record<string, number>
+  const totalQuestionsInBank = Object.values(bankCounts).reduce((a, b) => a + b, 0)
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -84,7 +99,7 @@ export default async function DashboardPage() {
                 {isAdmin ? 'Administrator & Candidate Workspace' : 'Candidate Workspace'}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                Huawei ICT Competition · Computing Track
+                Huawei ICT Competition · Computing and Network Tracks
               </Badge>
             </div>
             <h1 className="mt-2 text-3xl font-bold tracking-tight">
@@ -148,6 +163,31 @@ export default async function DashboardPage() {
             )}
           </div>
         )}
+
+        <section aria-labelledby="question-banks-heading" className="flex flex-col gap-4">
+          <div>
+            <h2 id="question-banks-heading" className="text-xl font-bold tracking-tight">Practice by competition path</h2>
+            <p className="text-sm text-muted-foreground">Choose a question bank without changing track or round by accident.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {bankPaths.map(([track, round]) => {
+              const available = bankCounts[`${track}_${round}`] ?? 0
+              return (
+                <Link key={`${track}-${round}`} href={`/exam?track=${track}&competitionRound=${round}`} className="group rounded-xl border bg-card p-4 shadow-2xs transition-colors hover:border-primary/50 hover:bg-accent/40">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold">{TRACK_LABELS[track]}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{ROUND_LABELS[round]}</p>
+                    </div>
+                    <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <p className="mt-5 text-sm font-semibold tabular-nums">{available} eligible question{available === 1 ? '' : 's'}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{available > 0 ? 'Ready to explore or start' : 'Question bank currently empty'}</p>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
 
         <section aria-label="Personal performance summary" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="metric-card">
@@ -250,7 +290,7 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-xl font-bold tracking-tight">Progress by Technology</h2>
               <p className="text-xs text-muted-foreground">
-                Cumulative accuracy and question bank availability across the three Computing Track technologies.
+                Cumulative accuracy and question bank availability across the technology curriculum.
               </p>
             </div>
           </div>

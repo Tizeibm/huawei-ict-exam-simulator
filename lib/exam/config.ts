@@ -5,6 +5,16 @@
 export type Topic = 'OPENEULER' | 'OPENGAUSS' | 'KUNPENG'
 export type QuestionType = 'SINGLE' | 'MULTIPLE' | 'BOOLEAN'
 export type ExamMode = 'FULL' | 'PRACTICE' | 'REVIEW'
+export type Track = 'COMPUTING' | 'NETWORK'
+export type CompetitionRound = 'PRELIMINARY' | 'NATIONAL'
+
+export const TRACKS: readonly Track[] = ['COMPUTING', 'NETWORK']
+export const COMPETITION_ROUNDS: readonly CompetitionRound[] = ['PRELIMINARY', 'NATIONAL']
+export const TRACK_LABELS: Record<Track, string> = { COMPUTING: 'Computing Track', NETWORK: 'Network Track' }
+export const ROUND_LABELS: Record<CompetitionRound, string> = {
+  PRELIMINARY: 'Preliminary Round',
+  NATIONAL: 'National Round',
+}
 
 export const TOPICS: readonly Topic[] = ['OPENEULER', 'OPENGAUSS', 'KUNPENG']
 export const QUESTION_TYPES: readonly QuestionType[] = ['SINGLE', 'MULTIPLE', 'BOOLEAN']
