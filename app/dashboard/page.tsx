@@ -86,7 +86,7 @@ export default async function DashboardPage() {
                 {isAdmin ? 'Administrator & Candidate Workspace' : 'Candidate Workspace'}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                Huawei ICT Competition · Computing Track
+                Huawei ICT Competition · Computing and Network Tracks
               </Badge>
             </div>
             <h1 className="mt-2 text-3xl font-bold tracking-tight">
@@ -278,7 +278,7 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-xl font-bold tracking-tight">Progress by Technology</h2>
               <p className="text-xs text-muted-foreground">
-                Cumulative accuracy and question bank availability across the three Computing Track technologies.
+                Cumulative accuracy and question bank availability across the technology curriculum.
               </p>
             </div>
           </div>
