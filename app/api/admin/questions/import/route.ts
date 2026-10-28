@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const MAX_BODY_BYTES = 2_000_000
 const difficultyForDatabase = (difficulty: string) => ({ EASY: 'FOUNDATION', MEDIUM: 'INTERMEDIATE', HARD: 'ADVANCED', EXPERT: 'ADVANCED', FOUNDATION: 'FOUNDATION', INTERMEDIATE: 'INTERMEDIATE', ADVANCED: 'ADVANCED' }[difficulty.toUpperCase()] ?? 'FOUNDATION')
+const topicForDatabase = (technology: string) => ({ OPENEULER: 'OPENEULER', OPENGAUSS: 'OPENGAUSS', KUNPENG: 'KUNPENG' }[technology.trim().toUpperCase()] ?? null)
 
 export async function POST(request: Request) {
   const auth = await requireAdmin()
@@ -49,9 +50,12 @@ export async function POST(request: Request) {
     if (reviewed) return NextResponse.json({ error: 'Updating approved questions requires a separate review workflow.', question: reviewed.external_id ?? reviewed.question_text }, { status: 409 })
   }
 
+  const unsupportedTechnology = parsed.data.questions.find((question) => !topicForDatabase(question.technology))
+  if (unsupportedTechnology) return NextResponse.json({ error: `Unsupported technology for the current question bank: ${unsupportedTechnology.technology}. Use OPENEULER, OPENGAUSS, or KUNPENG.` }, { status: 400 })
+
   const toInsert = parsed.data.questions.filter((question) => !existingByIdentity.has(identity(question)))
   const toUpdate = parsed.data.duplicate_strategy === 'UPDATE' ? parsed.data.questions.filter((question) => existingByIdentity.has(identity(question))) : []
-  const rows = (questions: typeof parsed.data.questions) => questions.map((question) => ({ external_id: question.external_id, track: question.track, certification_level: question.certification_level, technology: question.technology, topic: question.topic, round_suitability: question.round_suitability, difficulty: difficultyForDatabase(question.difficulty), type: question.type, language: question.language, question_text: question.question_text, options: question.options, correct_answers: question.correct_answers, explanation: question.explanation, source_type: question.source_type, source_reference: question.source_reference, review_status: 'DRAFT', tags: question.tags, version: question.version, created_by: user.id, updated_at: new Date().toISOString() }))
+  const rows = (questions: typeof parsed.data.questions) => questions.map((question) => ({ external_id: question.external_id, track: question.track, certification_level: question.certification_level, technology: question.technology, topic: topicForDatabase(question.technology), round_suitability: question.round_suitability, difficulty: difficultyForDatabase(question.difficulty), type: question.type, language: question.language, question_text: question.question_text, options: question.options, correct_answers: question.correct_answers, explanation: question.explanation, source_type: question.source_type, source_reference: question.source_reference, review_status: 'DRAFT', tags: question.tags, version: question.version, created_by: user.id, updated_at: new Date().toISOString() }))
 
   const insertRows = rows(toInsert)
   const inserted = toInsert.length ? await privileged.from('questions').insert(insertRows).select('id, external_id, track, topic, type, question_text, review_status') : { data: [], error: null }
