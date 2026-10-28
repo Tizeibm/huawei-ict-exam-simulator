@@ -465,7 +465,7 @@ export function AdminConsole() {
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
-        setFeedback({ kind: 'error', text: result.error ?? 'Question import failed.' })
+        setFeedback({ kind: 'error', text: result.detail ? `${result.error ?? 'Question import failed.'} ${result.detail}` : result.error ?? 'Question import failed.' })
         return
       }
       setUploadedFiles([])
