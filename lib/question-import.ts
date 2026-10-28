@@ -133,7 +133,7 @@ export function buildImportPreview(files: readonly { name: string; content: unkn
       const errors = parsed.success ? [] : parsed.error.issues.map((issue) => issue.message)
       if (duplicateInBatch) errors.push('Duplicate question within the selected upload files.')
       const warnings = questionIssues({ topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation }).filter((issue) => issue === 'Missing explanation')
-      items.push({ index: idx, sourceFile: file.name, external_id: preview.external_id, track: preview.track, certification_level: preview.certification_level, technology: preview.technology, topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation, valid: parsed.success && !duplicateInBatch, errors, warnings, duplicateInBatch, duplicateInBank })
+      items.push({ index: idx, sourceFile: file.name, external_id: preview.external_id, track: preview.track, certification_level: preview.certification_level, language: preview.language, difficulty: preview.difficulty, round_suitability: preview.round_suitability, technology: preview.technology, topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation, valid: parsed.success && !duplicateInBatch, errors, warnings, duplicateInBatch, duplicateInBank })
     }
   }
   const readyToInsert = items.filter((item) => item.valid && !item.duplicateInBank)
