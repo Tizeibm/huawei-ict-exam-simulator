@@ -94,6 +94,9 @@ export interface ImportPreviewItem {
   external_id?: string
   track: string
   certification_level: string
+  language: string
+  difficulty: string
+  round_suitability: string[]
   technology: string
   topic: string
   type: string
@@ -122,7 +125,7 @@ export function buildImportPreview(files: readonly { name: string; content: unkn
       const idx = globalIndex++
       const parsed = normalizedQuestionSchema.safeParse(raw)
       const rawObj = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
-      const preview = parsed.success ? parsed.data : { external_id: typeof rawObj.external_id === 'string' ? rawObj.external_id : undefined, track: 'UNKNOWN', certification_level: 'UNKNOWN', technology: 'UNKNOWN', topic: 'UNKNOWN', type: 'UNKNOWN', question_text: typeof rawObj.question_text === 'string' ? rawObj.question_text.trim() : '', options: {}, correct_answers: [], explanation: '' }
+      const preview = parsed.success ? parsed.data : { external_id: typeof rawObj.external_id === 'string' ? rawObj.external_id : undefined, track: 'UNKNOWN', certification_level: 'UNKNOWN', language: 'en', difficulty: 'UNKNOWN', round_suitability: [], technology: 'UNKNOWN', topic: 'UNKNOWN', type: 'UNKNOWN', question_text: typeof rawObj.question_text === 'string' ? rawObj.question_text.trim() : '', options: {}, correct_answers: [], explanation: '', source_type: 'DOCUMENT', source_reference: file.name, review_status: 'DRAFT', tags: [], version: 1 }
       const identity = preview.external_id ?? `${preview.track}\u0000${preview.type}\u0000${preview.question_text.toLowerCase()}`
       const duplicateInBatch = batchSeen.has(identity)
       batchSeen.add(identity)
@@ -130,7 +133,7 @@ export function buildImportPreview(files: readonly { name: string; content: unkn
       const errors = parsed.success ? [] : parsed.error.issues.map((issue) => issue.message)
       if (duplicateInBatch) errors.push('Duplicate question within the selected upload files.')
       const warnings = questionIssues({ topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation }).filter((issue) => issue === 'Missing explanation')
-      items.push({ index: idx, sourceFile: file.name, external_id: preview.external_id, track: preview.track, certification_level: preview.certification_level, technology: preview.technology, topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation, valid: parsed.success && !duplicateInBatch, errors, warnings, duplicateInBatch, duplicateInBank })
+      items.push({ index: idx, sourceFile: file.name, external_id: preview.external_id, track: preview.track, certification_level: preview.certification_level, language: preview.language, difficulty: preview.difficulty, round_suitability: preview.round_suitability, technology: preview.technology, topic: preview.topic, type: preview.type, question_text: preview.question_text, options: preview.options, correct_answers: preview.correct_answers, explanation: preview.explanation, valid: parsed.success && !duplicateInBatch, errors, warnings, duplicateInBatch, duplicateInBank })
     }
   }
   const readyToInsert = items.filter((item) => item.valid && !item.duplicateInBank)
