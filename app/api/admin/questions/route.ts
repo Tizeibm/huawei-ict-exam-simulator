@@ -32,8 +32,15 @@ export async function POST(request: Request) {
   const { data, error } = await privileged
     .from('questions')
     .insert({
+      external_id: q.external_id,
+      track: q.track,
+      certification_level: q.certification_level,
+      technology: q.technology,
       topic: q.topic,
+      round_suitability: q.round_suitability,
+      difficulty: q.difficulty,
       type: q.type,
+      language: q.language,
       question_text: q.question_text,
       options: q.options,
       correct_answers: q.correct_answers,
