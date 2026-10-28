@@ -4,7 +4,7 @@ import { payloadSchema } from '@/lib/question-import'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const MAX_BODY_BYTES = 2_000_000
-const difficultyForDatabase = (difficulty: string) => ({ EASY: 'FOUNDATION', MEDIUM: 'INTERMEDIATE', HARD: 'ADVANCED', EXPERT: 'ADVANCED' }[difficulty] ?? difficulty)
+const difficultyForDatabase = (difficulty: string) => ({ EASY: 'FOUNDATION', MEDIUM: 'INTERMEDIATE', HARD: 'ADVANCED', EXPERT: 'ADVANCED', FOUNDATION: 'FOUNDATION', INTERMEDIATE: 'INTERMEDIATE', ADVANCED: 'ADVANCED' }[difficulty.toUpperCase()] ?? 'FOUNDATION')
 
 export async function POST(request: Request) {
   const auth = await requireAdmin()
@@ -53,8 +53,12 @@ export async function POST(request: Request) {
   const toUpdate = parsed.data.duplicate_strategy === 'UPDATE' ? parsed.data.questions.filter((question) => existingByIdentity.has(identity(question))) : []
   const rows = (questions: typeof parsed.data.questions) => questions.map((question) => ({ external_id: question.external_id, track: question.track, certification_level: question.certification_level, technology: question.technology, topic: question.topic, round_suitability: question.round_suitability, difficulty: difficultyForDatabase(question.difficulty), type: question.type, language: question.language, question_text: question.question_text, options: question.options, correct_answers: question.correct_answers, explanation: question.explanation, source_type: question.source_type, source_reference: question.source_reference, review_status: 'DRAFT', tags: question.tags, version: question.version, created_by: user.id, updated_at: new Date().toISOString() }))
 
-  const inserted = toInsert.length ? await privileged.from('questions').insert(rows(toInsert)).select('id, external_id, track, topic, type, question_text, review_status') : { data: [], error: null }
-  if (inserted.error) return NextResponse.json({ error: 'Unable to import questions into database.', detail: inserted.error.message }, { status: 500 })
+  const insertRows = rows(toInsert)
+  const inserted = toInsert.length ? await privileged.from('questions').insert(insertRows).select('id, external_id, track, topic, type, question_text, review_status') : { data: [], error: null }
+  if (inserted.error) {
+    console.error('[v0] Question import database error', { code: inserted.error.code, message: inserted.error.message, details: inserted.error.details, hint: inserted.error.hint, rowCount: insertRows.length })
+    return NextResponse.json({ error: 'Unable to import questions into database.', detail: inserted.error.message, code: inserted.error.code, hint: inserted.error.hint }, { status: 500 })
+  }
   let updatedCount = 0
   for (const question of toUpdate) {
     const existing = existingByIdentity.get(identity(question))
