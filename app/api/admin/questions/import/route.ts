@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 const MAX_BODY_BYTES = 2_000_000
 const difficultyForDatabase = (difficulty: string) => ({ EASY: 'FOUNDATION', MEDIUM: 'INTERMEDIATE', HARD: 'ADVANCED', EXPERT: 'ADVANCED', FOUNDATION: 'FOUNDATION', INTERMEDIATE: 'INTERMEDIATE', ADVANCED: 'ADVANCED' }[difficulty.toUpperCase()] ?? 'FOUNDATION')
-const topicForDatabase = (technology: string) => ({ OPENEULER: 'OPENEULER', OPENGAUSS: 'OPENGAUSS', KUNPENG: 'KUNPENG' }[technology.trim().toUpperCase()] ?? null)
+const topicForDatabase = (technology: string) => ({ OPENEULER: 'OPENEULER', OPENGAUSS: 'OPENGAUSS', KUNPENG: 'KUNPENG', DATACOM: 'DATACOM' }[technology.trim().toUpperCase()] ?? null)
 
 export async function POST(request: Request) {
   const auth = await requireAdmin()
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   const unsupportedTechnology = parsed.data.questions.find((question) => !topicForDatabase(question.technology))
-  if (unsupportedTechnology) return NextResponse.json({ error: `Unsupported technology for the current question bank: ${unsupportedTechnology.technology}. Use OPENEULER, OPENGAUSS, or KUNPENG.` }, { status: 400 })
+  if (unsupportedTechnology) return NextResponse.json({ error: `Unsupported technology for the current question bank: ${unsupportedTechnology.technology}. Use OPENEULER, OPENGAUSS, KUNPENG, or DATACOM.` }, { status: 400 })
 
   const toInsert = parsed.data.questions.filter((question) => !existingByIdentity.has(identity(question)))
   const toUpdate = parsed.data.duplicate_strategy === 'UPDATE' ? parsed.data.questions.filter((question) => existingByIdentity.has(identity(question))) : []
