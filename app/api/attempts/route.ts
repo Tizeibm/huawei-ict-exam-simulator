@@ -63,6 +63,7 @@ async function loadExamReadyQuestions(
     .select('id, topic, type, question_text, options, correct_answers, explanation, track, round_suitability, is_active')
     .eq('track', track)
     .eq('is_active', true)
+    .contains('round_suitability', [competitionRound])
     .limit(3000)
 
   if (error || !data) throw new Error('Unable to load question bank.')
@@ -321,7 +322,7 @@ export async function POST(request: Request) {
     const allQuestions = await loadExamReadyQuestions(privileged, track, competitionRound)
     if (allQuestions.length === 0) {
       return NextResponse.json(
-        { error: 'The question bank does not contain any valid exam-ready questions yet.' },
+        { error: `No exam-ready questions are available for ${track} / ${competitionRound}. Import active questions with the matching track and round_suitability first.` },
         { status: 422 },
       )
     }
