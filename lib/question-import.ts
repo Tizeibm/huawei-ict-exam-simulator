@@ -16,6 +16,7 @@ export const importMetadataSchema = z.object({
 }).superRefine((metadata, ctx) => {
   if (metadata.schema_version !== '1.0') ctx.addIssue({ code: 'custom', path: ['schema_version'], message: `Unsupported schema version ${metadata.schema_version}. Only 1.0 is supported.` })
   if (metadata.total_questions !== undefined && metadata.total_questions < 1) ctx.addIssue({ code: 'custom', path: ['total_questions'], message: 'total_questions must be positive.' })
+  if (metadata.generation_batch !== undefined && metadata.generation_batches_total !== undefined && metadata.generation_batch > metadata.generation_batches_total) ctx.addIssue({ code: 'custom', path: ['generation_batch'], message: 'generation_batch cannot exceed generation_batches_total.' })
 })
 
 const optionSchema = z.object({ id: z.string().trim().min(1).max(10), text: z.string().trim().min(1).max(1000) })
@@ -76,7 +77,7 @@ export const payloadSchema = z.object({
   skipDuplicates: z.boolean().optional().default(true),
   duplicate_strategy: z.enum(['SKIP', 'UPDATE', 'CANCEL']).optional().default('SKIP'),
 }).superRefine((payload, ctx) => {
-  if (payload.metadata && payload.metadata.total_questions !== undefined && payload.metadata.total_questions !== payload.questions.length) ctx.addIssue({ code: 'custom', path: ['metadata', 'total_questions'], message: `Metadata declares ${payload.metadata.total_questions} questions but ${payload.questions.length} were supplied.` })
+  if (payload.metadata && payload.metadata.total_questions !== undefined && payload.metadata.total_questions < payload.questions.length) ctx.addIssue({ code: 'custom', path: ['metadata', 'total_questions'], message: `Metadata declares ${payload.metadata.total_questions} questions, but ${payload.questions.length} were supplied.` })
   const seen = new Set<string>()
   for (const [index, question] of payload.questions.entries()) {
     const identity = question.external_id ?? `${question.track}\u0000${question.type}\u0000${question.question_text.toLowerCase()}`

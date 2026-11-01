@@ -78,6 +78,14 @@ export default async function DashboardPage() {
   const summaryStats = summarizeHistory(summaries)
   const perTopic = topicProgress(summaries)
   const recommendation = recommendNext(summaries)
+  const trackStats = (track: 'COMPUTING' | 'NETWORK') => {
+    const attempts = completedRows.filter((item) => item.track === track)
+    const answered = attempts.reduce((sum, item) => sum + item.total, 0)
+    const correct = attempts.reduce((sum, item) => sum + item.score, 0)
+    return { attempts: attempts.length, percent: answered > 0 ? Math.round((correct / answered) * 100) : null }
+  }
+  const computingStats = trackStats('COMPUTING')
+  const networkStats = trackStats('NETWORK')
 
   const questionCountsByTopic = Object.fromEntries(
     TOPICS.map((topic, idx) => [topic, topicCountResponses[idx]?.count ?? 0]),
@@ -186,6 +194,32 @@ export default async function DashboardPage() {
                 </Link>
               )
             })}
+          </div>
+        </section>
+
+        <section aria-labelledby="track-performance-heading" className="flex flex-col gap-3">
+          <div>
+            <h2 id="track-performance-heading" className="text-xl font-bold tracking-tight">Performance by Track</h2>
+            <p className="text-xs text-muted-foreground">Exam statistics are calculated independently for Computing and Network attempts.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {([
+              ['COMPUTING', 'Computing Track', computingStats],
+              ['NETWORK', 'Network Track', networkStats],
+            ] as const).map(([key, label, stats]) => (
+              <Card key={key} className="metric-card">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="text-base font-bold">{label}</CardTitle>
+                    <Badge variant={key === 'NETWORK' ? 'default' : 'secondary'}>{key === 'NETWORK' ? 'Network' : 'Computing'}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4 pt-0">
+                  <div><p className="text-2xl font-bold tabular-nums">{stats.attempts}</p><p className="text-xs text-muted-foreground">completed exams</p></div>
+                  <div><p className="text-2xl font-bold tabular-nums text-primary">{stats.percent === null ? '—' : `${stats.percent}%`}</p><p className="text-xs text-muted-foreground">track accuracy</p></div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
 
