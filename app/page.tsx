@@ -103,7 +103,7 @@ export default async function HomePage() {
 Competition Track Simulator
                   </Badge>
                   <Badge variant="outline" className="text-xs">
-                    openEuler · openGauss · Kunpeng
+                    Computing: openEuler · openGauss · Kunpeng · Network: DATACOM · Security · WLAN
                   </Badge>
                 </div>
 
@@ -153,8 +153,8 @@ Competition Track Simulator
                     <p className="text-xs text-muted-foreground">Server-enforced timer</p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold text-primary tabular-nums">3 Technologies</p>
-                    <p className="text-xs text-muted-foreground">openEuler, openGauss, Kunpeng</p>
+                    <p className="text-2xl font-bold text-primary tabular-nums">6 Technologies</p>
+                    <p className="text-xs text-muted-foreground">3 Computing · 3 Network</p>
                   </div>
                 </div>
               </div>
@@ -253,13 +253,39 @@ Competition Track Simulator
           </div>
         </section>
 
+        {/* Network Track Section */}
+        <section className="border-t bg-muted/20 py-14">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="mb-8 flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Network Track</p>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Network Competition Curriculum</h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">Prepare for Network Track exams with dedicated question banks and round-aware scoring across DATACOM, Security, and WLAN.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                ['DATACOM', 'Routing, switching, protocols, and network architecture'],
+                ['SECURITY', 'Network defense, access control, and secure operations'],
+                ['WLAN', 'Wireless standards, design, roaming, and troubleshooting'],
+              ].map(([name, description]) => (
+                <Card key={name} className="metric-card">
+                  <CardHeader>
+                    <Badge variant="outline" className="w-fit">Network Track</Badge>
+                    <CardTitle className="mt-3 text-lg">{name}</CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Three Technologies Section */}
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <div className="mb-8 flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Core Curriculum</p>
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Competition Technologies</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Every simulated exam and practice session tracks your accuracy independently across the three core technologies.
+              Computing Track preparation covers openEuler, openGauss, and Kunpeng. Network Track preparation is shown separately above for dedicated network coverage.
             </p>
           </div>
 

@@ -68,6 +68,8 @@ export interface PersistedAttemptRow {
   topic_stats: TopicStats | null
   details: QuestionResult[]
   practice_config: PracticeConfig | null
+  track: 'COMPUTING' | 'NETWORK' | null
+  competition_round: 'PRELIMINARY' | 'NATIONAL' | null
 }
 
 /**
@@ -115,6 +117,9 @@ export function unpackAttemptRow(raw: Record<string, unknown>): PersistedAttempt
     ('status' in rawDetails || 'results' in rawDetails || '_v' in rawDetails)
 
   const env = isEnvelope ? (rawDetails as Partial<AttemptEnvelope>) : null
+
+  const track = raw.track === 'NETWORK' || raw.track === 'COMPUTING' ? raw.track : null
+  const competition_round = raw.competition_round === 'NATIONAL' || raw.competition_round === 'PRELIMINARY' ? raw.competition_round : null
 
   const mode = ((env?.mode ?? raw.mode ?? 'FULL') as ExamMode)
   const status = ((env?.status ?? raw.status ?? 'SUBMITTED') as AttemptStatus)
@@ -213,6 +218,8 @@ export function unpackAttemptRow(raw: Record<string, unknown>): PersistedAttempt
     topic_stats,
     details: results,
     practice_config,
+    track,
+    competition_round,
   }
 }
 
