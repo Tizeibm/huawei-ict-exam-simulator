@@ -13,7 +13,7 @@ import {
   summarizeHistory,
   topicProgress,
 } from '@/lib/exam/analytics'
-import { SIMULATOR_PASS_PERCENT, TOPIC_LABELS, TOPICS } from '@/lib/exam/config'
+import { ROUND_LABELS, SIMULATOR_PASS_PERCENT, TOPIC_LABELS, TOPICS, TRACK_LABELS } from '@/lib/exam/config'
 import { percent } from '@/lib/exam/scoring'
 import { toAttemptSummary, unpackAttemptRow } from '@/lib/exam-service'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -26,7 +26,7 @@ export default async function AnalyticsPage() {
 
   const { data: rows } = await privileged
     .from('exam_attempts')
-    .select('id, user_id, score, total, details, created_at')
+    .select('id, user_id, score, total, details, created_at, track, competition_round')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -55,7 +55,7 @@ export default async function AnalyticsPage() {
               Historical Analytics &amp; Progress Trends
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Track your score evolution and technology mastery across openEuler, openGauss, and Kunpeng.
+              Track your score evolution and technology mastery across Computing and Network Track technologies.
             </p>
           </div>
           <Link href="/exam" className={buttonVariants({ size: 'default' })}>
@@ -101,6 +101,7 @@ export default async function AnalyticsPage() {
                     <tr className="border-b text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <th className="pb-3">Date</th>
                       <th className="pb-3">Mode</th>
+                      <th className="pb-3">Track / Round</th>
                       <th className="pb-3 text-right">Raw Score</th>
                       <th className="pb-3 text-right">Overall %</th>
                       {TOPICS.map((t) => (
@@ -123,6 +124,10 @@ export default async function AnalyticsPage() {
                             <Badge variant={item.mode === 'FULL' ? 'default' : 'secondary'}>
                               {item.mode}
                             </Badge>
+                          </td>
+                          <td className="py-3 text-xs text-muted-foreground">
+                            {item.track ? TRACK_LABELS[item.track] : 'Legacy'}
+                            {item.competition_round ? ` · ${ROUND_LABELS[item.competition_round]}` : ''}
                           </td>
                           <td className="py-3 text-right font-medium tabular-nums">
                             {item.score} / {item.total}

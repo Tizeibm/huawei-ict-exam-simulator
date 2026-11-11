@@ -2,7 +2,7 @@
 // NOTE: this blueprint, duration and pass mark are ICT Prep project settings.
 // They are NOT claimed to be Huawei's official exam parameters.
 
-export type Topic = 'OPENEULER' | 'OPENGAUSS' | 'KUNPENG'
+export type Topic = 'OPENEULER' | 'OPENGAUSS' | 'KUNPENG' | 'DATACOM' | 'SECURITY' | 'WLAN'
 export type QuestionType = 'SINGLE' | 'MULTIPLE' | 'BOOLEAN'
 export type ExamMode = 'FULL' | 'PRACTICE' | 'REVIEW'
 export type Track = 'COMPUTING' | 'NETWORK'
@@ -16,27 +16,49 @@ export const ROUND_LABELS: Record<CompetitionRound, string> = {
   NATIONAL: 'National Round',
 }
 
-export const TOPICS: readonly Topic[] = ['OPENEULER', 'OPENGAUSS', 'KUNPENG']
+export const COMPUTING_TOPICS: readonly Topic[] = ['OPENEULER', 'OPENGAUSS', 'KUNPENG']
+export const NETWORK_TOPICS: readonly Topic[] = ['DATACOM', 'SECURITY', 'WLAN']
+export const TOPICS: readonly Topic[] = [...COMPUTING_TOPICS, ...NETWORK_TOPICS]
+export const TOPICS_BY_TRACK: Record<Track, readonly Topic[]> = {
+  COMPUTING: COMPUTING_TOPICS,
+  NETWORK: NETWORK_TOPICS,
+}
 export const QUESTION_TYPES: readonly QuestionType[] = ['SINGLE', 'MULTIPLE', 'BOOLEAN']
 
-export const TOPIC_LABELS: Record<Topic, string> = { OPENEULER: 'openEuler', OPENGAUSS: 'openGauss', KUNPENG: 'Kunpeng' }
-export const KNOWN_TECHNOLOGIES = ['OPENEULER', 'OPENGAUSS', 'KUNPENG', 'DATACOM', 'SECURITY', 'WLAN'] as const
-export const TECHNOLOGY_LABELS: Record<(typeof KNOWN_TECHNOLOGIES)[number], string> = {
-  OPENEULER: 'openEuler',
-  OPENGAUSS: 'openGauss',
-  KUNPENG: 'Kunpeng',
-  DATACOM: 'DATACOM',
-  SECURITY: 'Security',
-  WLAN: 'WLAN',
+export const TOPIC_LABELS: Record<Topic, string> = {
+  OPENEULER: 'openEuler', OPENGAUSS: 'openGauss', KUNPENG: 'Kunpeng',
+  DATACOM: 'DATACOM', SECURITY: 'Security', WLAN: 'WLAN',
 }
+export const KNOWN_TECHNOLOGIES = TOPICS
+export const TECHNOLOGY_LABELS = TOPIC_LABELS
 export const TYPE_LABELS: Record<QuestionType, string> = { SINGLE: 'Single choice', MULTIPLE: 'Multiple choice', BOOLEAN: 'True / False' }
 
-/** Questions required per technology and type for a full simulated exam (60 total). */
+const EMPTY_TOPIC_BLUEPRINT = { SINGLE: 0, MULTIPLE: 0, BOOLEAN: 0 }
+
+/** Project-configured allocation for a 60-question Computing Track simulation. */
 export const FULL_BLUEPRINT: Record<Topic, Record<QuestionType, number>> = {
   OPENEULER: { SINGLE: 15, MULTIPLE: 8, BOOLEAN: 7 },
   OPENGAUSS: { SINGLE: 9, MULTIPLE: 5, BOOLEAN: 4 },
   KUNPENG: { SINGLE: 6, MULTIPLE: 2, BOOLEAN: 4 },
+  DATACOM: EMPTY_TOPIC_BLUEPRINT,
+  SECURITY: EMPTY_TOPIC_BLUEPRINT,
+  WLAN: EMPTY_TOPIC_BLUEPRINT,
 }
+
+/** Network simulation uses an even per-technology allocation (20 each, 60 total). */
+export const NETWORK_FULL_BLUEPRINT: Record<Topic, Record<QuestionType, number>> = {
+  OPENEULER: EMPTY_TOPIC_BLUEPRINT,
+  OPENGAUSS: EMPTY_TOPIC_BLUEPRINT,
+  KUNPENG: EMPTY_TOPIC_BLUEPRINT,
+  DATACOM: { SINGLE: 10, MULTIPLE: 5, BOOLEAN: 5 },
+  SECURITY: { SINGLE: 10, MULTIPLE: 5, BOOLEAN: 5 },
+  WLAN: { SINGLE: 10, MULTIPLE: 5, BOOLEAN: 5 },
+}
+export const TRACK_BLUEPRINTS: Record<Track, Record<Topic, Record<QuestionType, number>>> = {
+  COMPUTING: FULL_BLUEPRINT,
+  NETWORK: NETWORK_FULL_BLUEPRINT,
+}
+export const blueprintForTrack = (track: Track) => TRACK_BLUEPRINTS[track]
 
 export const FULL_EXAM_DURATION_MINUTES = 90
 /** Practice and review sessions are untimed. */

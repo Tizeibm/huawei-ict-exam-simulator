@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { AuthShell } from '@/components/auth/auth-shell'
 import { LoginForm } from '@/components/auth/login-form'
 
-export const metadata: Metadata = { title: 'Sign in · ICT Prep', description: 'Sign in to the ICT Prep Huawei ICT Competition Computing Track exam simulator.' }
+export const metadata: Metadata = { title: 'Sign in · ICT Prep', description: 'Sign in to the ICT Prep Huawei ICT Competition Computing and Network Track exam simulator.' }
 
 export default function LoginPage() {
   return <AuthShell><LoginForm /></AuthShell>

@@ -10,6 +10,8 @@ import {
   Layers,
   Server,
   ShieldCheck,
+  Target,
+  Wifi,
 } from 'lucide-react'
 import { getCurrentUserContext } from '@/lib/auth/server'
 import {
@@ -21,6 +23,7 @@ import {
   SIMULATOR_PASS_PERCENT,
   TOPIC_LABELS,
   TOPICS,
+  COMPUTING_TOPICS,
   TYPE_LABELS,
 } from '@/lib/exam/config'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +45,21 @@ const TRACK_DETAILS = {
     Icon: Cpu,
     subtitle: 'ARM Server Computing Platform',
     description: 'Kunpeng processor architecture, software porting, compiler optimization, and performance Acceleration libraries.',
+  },
+  DATACOM: {
+    Icon: Target,
+    subtitle: 'Data Communications',
+    description: 'Routing, switching, IP services, and enterprise network architecture.',
+  },
+  SECURITY: {
+    Icon: ShieldCheck,
+    subtitle: 'Network Security',
+    description: 'Network defense, security operations, and infrastructure protection.',
+  },
+  WLAN: {
+    Icon: Wifi,
+    subtitle: 'Wireless LAN',
+    description: 'Wireless architecture, WLAN configuration, and troubleshooting.',
   },
 } as const
 
@@ -112,7 +130,7 @@ Competition Track Simulator
                 </h1>
 
                 <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-                  Train under realistic examination conditions with a 60-question multi-technology blueprint, strict server-validated scoring, topic-level diagnostics, and longitudinal progress tracking across openEuler, openGauss, and Kunpeng.
+                  Train under realistic examination conditions with dedicated Computing and Network question banks, track-specific exam blueprints, strict server-validated scoring, and technology-level progress tracking.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -167,7 +185,7 @@ Competition Track Simulator
                     <Badge variant="secondary">{totalQuestions} Total</Badge>
                   </div>
                   <CardDescription>
-                    Configured ICT Prep simulator allocation across technologies and question formats.
+                    Computing allocation shown below. Network Track uses its own 60-question blueprint, split evenly across DATACOM, Security, and WLAN.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-4">
@@ -183,8 +201,8 @@ Competition Track Simulator
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {TOPICS.map((topic) => (
-                          <tr key={topic}>
+{COMPUTING_TOPICS.map((topic) => (
+                    <tr key={topic}>
                             <td className="py-3 font-semibold">{TOPIC_LABELS[topic]}</td>
                             <td className="py-3 text-right tabular-nums text-muted-foreground">
                               {FULL_BLUEPRINT[topic].SINGLE}

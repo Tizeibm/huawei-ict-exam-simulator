@@ -266,6 +266,8 @@ export function toAttemptSummary(row: PersistedAttemptRow | Record<string, unkno
     score: unpacked.score,
     total: unpacked.total,
     topic_stats: unpacked.topic_stats,
+    track: unpacked.track,
+    competition_round: unpacked.competition_round,
   }
 }
 

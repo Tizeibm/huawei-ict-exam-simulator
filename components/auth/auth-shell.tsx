@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Cpu, Database, Server, ShieldCheck } from 'lucide-react'
+import { Cpu, Database, Server, ShieldCheck, Target, Wifi } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 export function Logo({ light = false }: { light?: boolean }) {
@@ -10,16 +10,19 @@ export function Logo({ light = false }: { light?: boolean }) {
       </span>
       <span className="leading-tight">
         <span className="block text-lg font-bold tracking-tight">ICT Prep</span>
-        <span className={light ? 'block text-xs text-blue-100' : 'block text-xs text-muted-foreground'}>Huawei ICT Competition · Computing Track</span>
+        <span className={light ? 'block text-xs text-blue-100' : 'block text-xs text-muted-foreground'}>Huawei ICT Competition · Computing &amp; Network Tracks</span>
       </span>
     </Link>
   )
 }
 
 const TRACKS = [
-  { name: 'openEuler', detail: 'Linux operating system', Icon: Server },
-  { name: 'openGauss', detail: 'Enterprise database', Icon: Database },
-  { name: 'Kunpeng', detail: 'ARM server platform', Icon: Cpu },
+  { name: 'openEuler', detail: 'Computing · Linux operating system', Icon: Server },
+  { name: 'openGauss', detail: 'Computing · Enterprise database', Icon: Database },
+  { name: 'Kunpeng', detail: 'Computing · ARM server platform', Icon: Cpu },
+  { name: 'DATACOM', detail: 'Network · Data communications', Icon: Target },
+  { name: 'Security', detail: 'Network · Infrastructure protection', Icon: ShieldCheck },
+  { name: 'WLAN', detail: 'Network · Wireless LAN', Icon: Wifi },
 ]
 
 /** Two-panel layout used by every public authentication page. */
@@ -32,12 +35,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <div className="relative z-10 flex flex-col gap-6">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.16em] text-blue-100">Exam simulator</p>
-              <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-balance">Practise the Computing Track with confidence.</h2>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-blue-100">Timed, scored practice drawn from a curated question bank covering all three certification tracks.</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-balance">Practise both competition tracks with confidence.</h2>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-blue-100">Timed, scored practice drawn from curated question banks for Computing and Network technologies.</p>
             </div>
-            <ul className="flex flex-col gap-3">
+            <ul className="grid grid-cols-2 gap-3">
               {TRACKS.map(({ name, detail, Icon }) => (
-                <li key={name} className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 p-3.5 backdrop-blur-sm">
+                <li key={name} className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-sm">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-blue-700"><Icon className="size-5" aria-hidden="true" /></span>
                   <span><span className="block font-semibold">{name}</span><span className="block text-xs text-blue-100">{detail}</span></span>
                 </li>

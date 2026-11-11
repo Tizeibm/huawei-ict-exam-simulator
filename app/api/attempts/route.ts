@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireApproved } from '@/lib/auth/server'
 import {
+  blueprintForTrack,
   FULL_EXAM_DURATION_MINUTES,
   PRACTICE_MAX_QUESTIONS,
   QUESTION_TYPES,
-  TOPICS,
+  TOPICS_BY_TRACK,
   type CompetitionRound,
   type ExamMode,
   type QuestionType,
@@ -35,7 +36,7 @@ const startAttemptSchema = z.object({
   mode: z.enum(['FULL', 'PRACTICE', 'REVIEW']),
   track: z.enum(['COMPUTING', 'NETWORK']).default('COMPUTING'),
   competitionRound: z.enum(['PRELIMINARY', 'NATIONAL']).default('PRELIMINARY'),
-  topics: z.array(z.enum(['OPENEULER', 'OPENGAUSS', 'KUNPENG'])).min(1).optional(),
+  topics: z.array(z.enum(['OPENEULER', 'OPENGAUSS', 'KUNPENG', 'DATACOM', 'SECURITY', 'WLAN'])).min(1).optional(),
   types: z.array(z.enum(['SINGLE', 'MULTIPLE', 'BOOLEAN'])).min(1).optional(),
   count: z.number().int().min(1).max(PRACTICE_MAX_QUESTIONS).optional(),
   immediateFeedback: z.boolean().optional().default(false),
@@ -96,7 +97,13 @@ async function loadExamReadyQuestions(
  * Returns question bank readiness, pool counts, shortages, reviewable question counts,
  * and any currently active (`IN_PROGRESS`) exam session for the authenticated user.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const searchParams = new URL(request.url).searchParams
+  const requestedTrack = searchParams.get('track')?.toUpperCase()
+  const requestedRound = searchParams.get('competitionRound')?.toUpperCase()
+  const track: Track = requestedTrack === 'NETWORK' ? 'NETWORK' : 'COMPUTING'
+  const competitionRound: CompetitionRound = requestedRound === 'NATIONAL' ? 'NATIONAL' : 'PRELIMINARY'
+  const blueprint = blueprintForTrack(track)
   const auth = await requireApproved()
   if (!auth.ok) return auth.response
 
@@ -109,7 +116,7 @@ export async function GET() {
 
   try {
     const [allQuestions, attemptsRes] = await Promise.all([
-      loadExamReadyQuestions(privileged, 'COMPUTING', 'PRELIMINARY'),
+      loadExamReadyQuestions(privileged, track, competitionRound),
       privileged
         .from('exam_attempts')
         .select('id, user_id, score, total, details, created_at, track, competition_round, exam_mode, duration_seconds, submitted_at')
@@ -120,7 +127,7 @@ export async function GET() {
 
     const pool: PoolItem[] = allQuestions.map((q) => ({ id: q.id, topic: q.topic, type: q.type }))
     const poolCounts = countPool(pool)
-    const shortages = blueprintShortages(pool)
+    const shortages = blueprintShortages(pool, blueprint)
 
     const userAttempts = (attemptsRes.data ?? []).map((r) => unpackAttemptRow(r as Record<string, unknown>))
     const now = Date.now()
@@ -329,7 +336,12 @@ export async function POST(request: Request) {
 
     const pool: PoolItem[] = allQuestions.map((q) => ({ id: q.id, topic: q.topic, type: q.type }))
     const { mode, immediateFeedback, reviewFilter } = parsedStart.data
-    const selectedTopics: readonly Topic[] = parsedStart.data.topics?.length ? parsedStart.data.topics : TOPICS
+    const selectedTopics: readonly Topic[] = parsedStart.data.topics?.length
+      ? parsedStart.data.topics
+      : TOPICS_BY_TRACK[track]
+    if (selectedTopics.some((topic) => !TOPICS_BY_TRACK[track].includes(topic))) {
+      return NextResponse.json({ error: `Selected technologies do not belong to the ${track} track.` }, { status: 400 })
+    }
     const selectedTypes: readonly QuestionType[] = parsedStart.data.types?.length ? parsedStart.data.types : QUESTION_TYPES
 
     // Load recent user attempts using only guaranteed base columns
@@ -346,12 +358,12 @@ export async function POST(request: Request) {
     let durationSeconds: number | null = null
 
     if (mode === 'FULL') {
-      const fullResult = buildFullExam(pool)
+      const fullResult = buildFullExam(pool, Math.random, blueprintForTrack(track))
       if (!fullResult.ok) {
         return NextResponse.json(
           {
             error:
-              'Insufficient questions in the question bank to generate a 60-question Full Exam Simulation. Practice Mode remains available for existing questions.',
+              `Insufficient exam-ready questions in the ${track === 'NETWORK' ? 'Network' : 'Computing'} Track question bank to generate its 60-question Full Exam Simulation. Practice Mode remains available for existing questions.`,
             shortages: fullResult.shortages,
           },
           { status: 422 },

@@ -26,13 +26,13 @@ import {
 import {
   blueprintTopicTotal,
   blueprintTotal,
-  FULL_BLUEPRINT,
   FULL_EXAM_DURATION_MINUTES,
+  TRACK_BLUEPRINTS,
+  TOPICS_BY_TRACK,
   PRACTICE_MAX_QUESTIONS,
   PRACTICE_MIN_QUESTIONS,
   QUESTION_TYPES,
   TOPIC_LABELS,
-  TOPICS,
   ROUND_LABELS,
   TRACK_LABELS,
   type CompetitionRound,
@@ -105,9 +105,9 @@ export function ExamWorkspace() {
   const [selectedTrack, setSelectedTrack] = useState<Track>(initialTrackParam === 'NETWORK' ? 'NETWORK' : 'COMPUTING')
   const [selectedRound, setSelectedRound] = useState<CompetitionRound>(initialRoundParam === 'NATIONAL' ? 'NATIONAL' : 'PRELIMINARY')
   const [practiceTopics, setPracticeTopics] = useState<Topic[]>(
-    initialTopicParam && (TOPICS as readonly string[]).includes(initialTopicParam)
+    initialTopicParam && (TOPICS_BY_TRACK[selectedTrack] as readonly string[]).includes(initialTopicParam)
       ? [initialTopicParam as Topic]
-      : [...TOPICS],
+      : [...TOPICS_BY_TRACK[selectedTrack]],
   )
   const [practiceTypes, setPracticeTypes] = useState<QuestionType[]>([...QUESTION_TYPES])
   const [practiceCount, setPracticeCount] = useState<number>(15)
@@ -136,7 +136,7 @@ export function ExamWorkspace() {
     setLoadingSetup(true)
     setError('')
     try {
-      const response = await fetch('/api/attempts')
+      const response = await fetch(`/api/attempts?track=${selectedTrack}&competitionRound=${selectedRound}`)
       if (!response.ok) {
         setError('Unable to load exam simulator configuration.')
         setLoadingSetup(false)
@@ -152,7 +152,7 @@ export function ExamWorkspace() {
     } finally {
       setLoadingSetup(false)
     }
-  }, [initialModeParam])
+  }, [initialModeParam, selectedTrack, selectedRound])
 
   useEffect(() => {
     loadSetup()
@@ -975,7 +975,11 @@ export function ExamWorkspace() {
       <section aria-label="Exam profile" className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-semibold">
           Track
-          <select className="h-10 rounded-md border bg-background px-3 text-sm font-normal" value={selectedTrack} onChange={(event) => setSelectedTrack(event.target.value as Track)}>
+          <select className="h-10 rounded-md border bg-background px-3 text-sm font-normal" value={selectedTrack} onChange={(event) => {
+            const track = event.target.value as Track
+            setSelectedTrack(track)
+            setPracticeTopics([...TOPICS_BY_TRACK[track]])
+          }}>
             {(Object.keys(TRACK_LABELS) as Track[]).map((track) => <option key={track} value={track}>{TRACK_LABELS[track]}</option>)}
           </select>
         </label>
@@ -1008,7 +1012,7 @@ export function ExamWorkspace() {
             </div>
             <h2 className="mt-4 text-base font-bold">1. Full Exam Simulation</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Fixed 60-question blueprint (30 openEuler, 18 openGauss, 12 Kunpeng), 90-minute countdown, no explanations until final submission.
+              Fixed 60-question {selectedTrack === 'NETWORK' ? 'Network' : 'Computing'} Track blueprint, 90-minute countdown, no explanations until final submission.
             </p>
           </div>
           <p className="mt-4 text-xs font-semibold text-primary">
@@ -1088,7 +1092,7 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle className="text-lg font-bold">Full Exam Simulation Blueprint</CardTitle>
                 <CardDescription>
-                  Configured 60-question Computing Track allocation (30 Single Choice, 15 Multiple Choice, 15 True/False).
+                  Configured 60-question {selectedTrack === 'NETWORK' ? 'Network' : 'Computing'} Track allocation (30 Single Choice, 15 Multiple Choice, 15 True/False).
                 </CardDescription>
               </div>
               <Badge variant={setupData?.fullExamReady ? 'default' : 'destructive'}>
@@ -1110,13 +1114,13 @@ export function ExamWorkspace() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {TOPICS.map((topic) => {
+                  {TOPICS_BY_TRACK[selectedTrack].map((topic) => {
                     const topicShortages = (setupData?.shortages ?? []).filter((s) => s.topic === topic)
                     return (
                       <tr key={topic}>
                         <td className="py-3 font-semibold">{TOPIC_LABELS[topic]}</td>
                         {QUESTION_TYPES.map((qt) => {
-                          const req = FULL_BLUEPRINT[topic][qt]
+                          const req = TRACK_BLUEPRINTS[selectedTrack][topic][qt]
                           const avail = setupData?.poolCounts?.[topic]?.[qt] ?? 0
                           return (
                             <td key={qt} className="py-3 text-right tabular-nums">
@@ -1126,7 +1130,7 @@ export function ExamWorkspace() {
                             </td>
                           )
                         })}
-                        <td className="py-3 text-right font-bold tabular-nums">{blueprintTopicTotal(topic)}</td>
+                        <td className="py-3 text-right font-bold tabular-nums">{blueprintTopicTotal(topic, TRACK_BLUEPRINTS[selectedTrack])}</td>
                         <td className="py-3 text-right">
                           {topicShortages.length === 0 ? (
                             <Badge variant="outline" className="border-emerald-500/40 text-emerald-700">
@@ -1209,7 +1213,7 @@ export function ExamWorkspace() {
                 1. Technologies to Include
               </span>
               <div className="flex flex-wrap gap-2">
-                {TOPICS.map((topic) => {
+                {TOPICS_BY_TRACK[selectedTrack].map((topic) => {
                   const active = practiceTopics.includes(topic)
                   return (
                     <Button

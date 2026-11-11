@@ -4,8 +4,10 @@ import {
   blueprintTopicTotal,
   blueprintTotal,
   FULL_BLUEPRINT,
+  NETWORK_FULL_BLUEPRINT,
   QUESTION_TYPES,
   TOPICS,
+  TOPICS_BY_TRACK,
 } from './config.ts'
 import {
   blueprintShortages,
@@ -88,6 +90,30 @@ test('Full exam generation respects the exact blueprint when sufficient question
         assert.equal(selectedCounts[topic][type], FULL_BLUEPRINT[topic][type])
       }
     }
+  }
+})
+
+test('Network Track full exam generation uses DATACOM, SECURITY, and WLAN quotas', () => {
+  const pool: PoolItem[] = TOPICS_BY_TRACK.NETWORK.flatMap((topic) =>
+    QUESTION_TYPES.flatMap((type) =>
+      Array.from({ length: NETWORK_FULL_BLUEPRINT[topic][type] }, (_, index) => ({
+        id: `${topic}-${type}-${index}`,
+        topic,
+        type,
+      })),
+    ),
+  )
+  const result = buildFullExam(pool, () => 0.25, NETWORK_FULL_BLUEPRINT)
+  assert.equal(result.ok, true)
+  if (result.ok) {
+    assert.equal(result.ids.length, 60)
+    const selected = countPool(result.ids.map((id) => pool.find((item) => item.id === id)!))
+    for (const topic of TOPICS_BY_TRACK.NETWORK) {
+      for (const type of QUESTION_TYPES) {
+        assert.equal(selected[topic][type], NETWORK_FULL_BLUEPRINT[topic][type])
+      }
+    }
+    assert.equal(selected.OPENEULER.SINGLE, 0)
   }
 })
 
@@ -241,6 +267,9 @@ test('Historical analytics & comparisons handle zero, one, and multiple attempts
       OPENEULER: { total: 30, correct: 21, incorrect: 9, unanswered: 0 },
       OPENGAUSS: { total: 18, correct: 9, incorrect: 9, unanswered: 0 },
       KUNPENG: { total: 12, correct: 6, incorrect: 6, unanswered: 0 },
+      DATACOM: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
+      SECURITY: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
+      WLAN: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
     },
   }
   const singleComp = compareWithPrevious([a1], 'att-1')
@@ -257,6 +286,9 @@ test('Historical analytics & comparisons handle zero, one, and multiple attempts
       OPENEULER: { total: 30, correct: 24, incorrect: 6, unanswered: 0 },
       OPENGAUSS: { total: 18, correct: 12, incorrect: 6, unanswered: 0 },
       KUNPENG: { total: 12, correct: 9, incorrect: 3, unanswered: 0 },
+      DATACOM: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
+      SECURITY: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
+      WLAN: { total: 0, correct: 0, incorrect: 0, unanswered: 0 },
     },
   }
 

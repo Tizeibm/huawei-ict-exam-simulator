@@ -13,6 +13,7 @@ import {
   Server,
   Shield,
   Target,
+  Wifi,
 } from 'lucide-react'
 import { AppHeader } from '@/components/app-header'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +43,9 @@ const TOPIC_META: Record<Topic, { Icon: typeof Server; description: string }> = 
   OPENEULER: { Icon: Server, description: 'Linux OS administration, storage & networking' },
   OPENGAUSS: { Icon: Database, description: 'Enterprise relational database architecture & SQL' },
   KUNPENG: { Icon: Cpu, description: 'ARM server architecture, porting & tuning' },
+  DATACOM: { Icon: Target, description: 'Routing, switching, and enterprise data communications' },
+  SECURITY: { Icon: Shield, description: 'Network security, threat protection, and secure infrastructure' },
+  WLAN: { Icon: Wifi, description: 'Wireless LAN planning, configuration, and troubleshooting' },
 }
 
 export default async function DashboardPage() {
