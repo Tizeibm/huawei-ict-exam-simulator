@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { blueprintShortages, countPool, type PoolItem } from '@/lib/exam/generate'
 import { isExamReady, questionIssues } from '@/lib/exam/quality'
 import { unpackAttemptRow } from '@/lib/exam-service'
-import type { QuestionType, Topic } from '@/lib/exam/config'
+import { blueprintForTrack, type QuestionType, type Topic, type Track } from '@/lib/exam/config'
 
 export async function GET() {
   const auth = await requireAdmin()
@@ -92,6 +92,8 @@ export async function GET() {
       id: q.id,
       topic: q.topic as Topic,
       type: q.type as QuestionType,
+      track: q.track as Track,
+      isActive: q.is_active !== false,
       question_text: q.question_text,
       options: (q.options ?? {}) as Record<string, string>,
       correct_answers: (q.correct_answers ?? []) as string[],
@@ -102,7 +104,7 @@ export async function GET() {
   })
 
   const readyPool: PoolItem[] = questions
-    .filter((q) => q.examReady)
+    .filter((q) => q.examReady && q.isActive)
     .map((q) => ({ id: q.id, topic: q.topic, type: q.type }))
 
   const bankPaths = [
@@ -119,20 +121,34 @@ export async function GET() {
   )
 
   const poolCounts = countPool(readyPool)
-  const shortages = blueprintShortages(readyPool)
+  const trackPoolCounts = Object.fromEntries((['COMPUTING', 'NETWORK'] as const).map((track) => [
+    track,
+    countPool(questions
+      .filter((question) => question.examReady && question.isActive && question.track === track)
+      .map((question) => ({ id: question.id, topic: question.topic, type: question.type }))),
+  ])) as Record<Track, ReturnType<typeof countPool>>
+  const shortages = blueprintShortages(readyPool, blueprintForTrack('COMPUTING'))
+  const networkShortages = blueprintShortages(
+    questions.filter((question) => question.examReady && question.isActive && question.track === 'NETWORK')
+      .map((question) => ({ id: question.id, topic: question.topic, type: question.type })),
+    blueprintForTrack('NETWORK'),
+  )
 
   return NextResponse.json({
     candidates,
     questions,
     poolCounts,
+    trackPoolCounts,
     bankCounts,
     shortages,
+    networkShortages,
     qualitySummary: {
       totalQuestions: questions.length,
       examReadyCount: readyPool.length,
       structuralIssueCount: questions.filter((q) => !q.examReady).length,
       missingExplanationCount: questions.filter((q) => q.issues.includes('Missing explanation')).length,
       fullExamReady: shortages.length === 0,
+      networkFullExamReady: networkShortages.length === 0,
     },
     currentUserId: auth.user.id,
   })

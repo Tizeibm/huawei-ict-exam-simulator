@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'ICT Prep · Huawei ICT Competition Computing Track Exam Simulator',
-  description: 'Practice HCIA-openEuler, HCIA-openGauss, and HCIA-Kunpeng certification exams.',
+  title: 'ICT Prep · Huawei ICT Competition Exam Simulator',
+  description: 'Practice Computing and Network Track exams covering openEuler, openGauss, Kunpeng, DATACOM, Security, and WLAN.',
   generator: 'v0.app',
   icons: {
     icon: [

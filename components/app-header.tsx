@@ -60,7 +60,7 @@ export function AppHeader({ email, fullName, isAdmin }: AppHeaderProps) {
             <div className="leading-none">
               <span className="block text-base font-bold tracking-tight text-foreground">ICT Prep</span>
               <span className="hidden text-[11px] font-medium text-muted-foreground sm:block">
-                Computing Track Simulator
+                Competition Exam Simulator
               </span>
             </div>
           </Link>

@@ -1,4 +1,4 @@
-import { TOPICS, type ExamMode, type Topic } from './config.ts'
+import { TOPICS, type ExamMode, type Topic, type Track, type CompetitionRound } from './config.ts'
 import { percent, type TopicStat, type TopicStats } from './scoring.ts'
 
 export interface AttemptSummary {
@@ -8,6 +8,8 @@ export interface AttemptSummary {
   score: number
   total: number
   topic_stats: TopicStats | null
+  track?: Track | null
+  competition_round?: CompetitionRound | null
 }
 
 export const attemptPercent = (a: Pick<AttemptSummary, 'score' | 'total'>) => percent(a.score, a.total)
@@ -80,5 +82,8 @@ export function trendSeries(attempts: readonly AttemptSummary[]) {
     OPENEULER: topicPercent(a.topic_stats?.OPENEULER),
     OPENGAUSS: topicPercent(a.topic_stats?.OPENGAUSS),
     KUNPENG: topicPercent(a.topic_stats?.KUNPENG),
+    DATACOM: topicPercent(a.topic_stats?.DATACOM),
+    SECURITY: topicPercent(a.topic_stats?.SECURITY),
+    WLAN: topicPercent(a.topic_stats?.WLAN),
   }))
 }

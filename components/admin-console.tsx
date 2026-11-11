@@ -25,14 +25,15 @@ import {
 import type { AccountRole, AccountStatus } from '@/lib/auth/access'
 import {
   blueprintTopicTotal,
-  blueprintTotal,
-  FULL_BLUEPRINT,
+  TRACK_BLUEPRINTS,
+  TOPICS_BY_TRACK,
   QUESTION_TYPES,
   TOPIC_LABELS,
   TOPICS,
   TYPE_LABELS,
   type QuestionType,
   type Topic,
+  type Track,
 } from '@/lib/exam/config'
 import type { Shortage } from '@/lib/exam/generate'
 import { buildImportPreview, type ImportPreviewItem } from '@/lib/question-import'
@@ -64,6 +65,8 @@ interface AdminQuestion {
   created_at?: string
   issues: string[]
   examReady: boolean
+  track: Track
+  isActive: boolean
 }
 
 interface QualitySummary {
@@ -72,6 +75,7 @@ interface QualitySummary {
   structuralIssueCount: number
   missingExplanationCount: number
   fullExamReady: boolean
+  networkFullExamReady: boolean
 }
 
 type MainTab = 'users' | 'questions' | 'import' | 'blueprint'
@@ -112,7 +116,8 @@ const SAMPLE_IMPORT_JSON = JSON.stringify(
 export function AdminConsole() {
   const [candidates, setCandidates] = useState<AdminCandidate[]>([])
   const [questions, setQuestions] = useState<AdminQuestion[]>([])
-  const [poolCounts, setPoolCounts] = useState<Record<Topic, Record<QuestionType, number>> | null>(null)
+  const [trackPoolCounts, setTrackPoolCounts] = useState<Record<Track, Record<Topic, Record<QuestionType, number>>> | null>(null)
+  const [networkShortages, setNetworkShortages] = useState<Shortage[]>([])
   const [bankCounts, setBankCounts] = useState<Record<string, number>>({})
   const [shortages, setShortages] = useState<Shortage[]>([])
   const [qualitySummary, setQualitySummary] = useState<QualitySummary | null>(null)
@@ -175,7 +180,8 @@ export function AdminConsole() {
       const data = await response.json()
       setCandidates(data.candidates ?? [])
       setQuestions(data.questions ?? [])
-      setPoolCounts(data.poolCounts ?? null)
+      setTrackPoolCounts(data.trackPoolCounts ?? null)
+      setNetworkShortages(data.networkShortages ?? [])
       setBankCounts(data.bankCounts ?? {})
       setShortages(data.shortages ?? [])
       setQualitySummary(data.qualitySummary ?? null)
@@ -601,15 +607,11 @@ export function AdminConsole() {
               )}
             </CardDescription>
             <CardTitle className="text-2xl font-bold">
-              {shortages.length === 0 && (qualitySummary?.examReadyCount ?? 0) >= blueprintTotal()
-                ? 'Ready'
-                : `${shortages.length} Shortage(s)`}
+              {`Computing ${shortages.length === 0 ? 'Ready' : `${shortages.length} short`} · Network ${qualitySummary?.networkFullExamReady ? 'Ready' : `${networkShortages.length} short`}`}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            {shortages.length === 0 && (qualitySummary?.examReadyCount ?? 0) >= blueprintTotal()
-              ? 'All 9 technology × type cells satisfy the 60-question blueprint.'
-              : 'Click "Blueprint & Quality" to inspect missing topic/type slots.'}
+            Separate 60-question blueprints are checked against each track&apos;s question pool. Open &quot;Blueprint &amp; Quality&quot; for technology-by-technology coverage.
           </CardContent>
         </Card>
 
@@ -1617,18 +1619,20 @@ export function AdminConsole() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {TOPICS.map((topic) => {
-                      const reqTotal = blueprintTopicTotal(topic)
+                    {([...TOPICS_BY_TRACK.COMPUTING, ...TOPICS_BY_TRACK.NETWORK]).map((topic) => {
+                      const track: Track = TOPICS_BY_TRACK.NETWORK.includes(topic) ? 'NETWORK' : 'COMPUTING'
+                      const trackCounts = trackPoolCounts?.[track]
+                      const reqTotal = blueprintTopicTotal(topic, TRACK_BLUEPRINTS[track])
                       const availTotal = QUESTION_TYPES.reduce(
-                        (acc, qt) => acc + (poolCounts?.[topic]?.[qt] ?? 0),
+                        (acc, qt) => acc + (trackCounts?.[topic]?.[qt] ?? 0),
                         0,
                       )
                       return (
                         <tr key={topic}>
                           <td className="py-3.5 font-semibold">{TOPIC_LABELS[topic]}</td>
                           {QUESTION_TYPES.map((qt) => {
-                            const avail = poolCounts?.[topic]?.[qt] ?? 0
-                            const req = FULL_BLUEPRINT[topic][qt]
+                            const avail = trackCounts?.[topic]?.[qt] ?? 0
+                            const req = TRACK_BLUEPRINTS[track][topic][qt]
                             const ok = avail >= req
                             return (
                               <td key={qt} className="py-3.5 text-right tabular-nums">
@@ -1654,13 +1658,13 @@ export function AdminConsole() {
                 </table>
               </div>
 
-              {shortages.length > 0 && (
+              {(shortages.length > 0 || networkShortages.length > 0) && (
                 <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-amber-900 dark:text-amber-200">
-                  <p className="font-bold">Blueprint Shortages Preventing Full 60-Question Exam Generation:</p>
+                  <p className="font-bold">Blueprint Shortages by Track:</p>
                   <ul className="mt-1.5 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-                    {shortages.map((s) => (
-                      <li key={`${s.topic}-${s.type}`}>
-                        • <strong>{TOPIC_LABELS[s.topic]} ({TYPE_LABELS[s.type]}):</strong> {s.available} available, {s.needed} required (short by {s.needed - s.available})
+                    {[...shortages.map((item) => ({ ...item, track: 'Computing' })), ...networkShortages.map((item) => ({ ...item, track: 'Network' }))].map((s) => (
+                      <li key={`${s.track}-${s.topic}-${s.type}`}>
+                        • <strong>{s.track} · {TOPIC_LABELS[s.topic]} ({TYPE_LABELS[s.type]}):</strong> {s.available} available, {s.needed} required (short by {s.needed - s.available})
                       </li>
                     ))}
                   </ul>

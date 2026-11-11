@@ -15,6 +15,9 @@ import {
   Flag,
   HelpCircle,
   Server,
+  Shield,
+  Target,
+  Wifi,
   TrendingDown,
   TrendingUp,
   XCircle,
@@ -56,6 +59,9 @@ const TOPIC_ICONS = {
   OPENEULER: Server,
   OPENGAUSS: Database,
   KUNPENG: Cpu,
+  DATACOM: Target,
+  SECURITY: Shield,
+  WLAN: Wifi,
 } as const
 
 type ReviewFilter = 'ALL' | 'CORRECT' | 'INCORRECT' | 'UNANSWERED' | 'FLAGGED'
@@ -293,7 +299,7 @@ export function ResultsView({ data }: { data: AttemptResultData }) {
         <div>
           <h2 className="text-lg font-bold tracking-tight">Per-Technology Performance</h2>
           <p className="text-xs text-muted-foreground">
-            Diagnostic breakdown across openEuler, openGauss, and Kunpeng based on the actual questions in this attempt.
+            Diagnostic breakdown by Computing and Network technology for the actual questions in this attempt.
           </p>
         </div>
 

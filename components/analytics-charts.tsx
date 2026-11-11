@@ -246,6 +246,9 @@ export function AnalyticsCharts({
                         strokeWidth={1.75}
                         connectNulls
                       />
+                      <Line type="monotone" dataKey="DATACOM" name="DATACOM" stroke="#ea580c" strokeWidth={1.75} connectNulls />
+                      <Line type="monotone" dataKey="SECURITY" name="Security" stroke="#db2777" strokeWidth={1.75} connectNulls />
+                      <Line type="monotone" dataKey="WLAN" name="WLAN" stroke="#4f46e5" strokeWidth={1.75} connectNulls />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
