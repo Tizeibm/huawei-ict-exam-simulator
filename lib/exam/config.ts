@@ -20,6 +20,15 @@ export const TOPICS: readonly Topic[] = ['OPENEULER', 'OPENGAUSS', 'KUNPENG']
 export const QUESTION_TYPES: readonly QuestionType[] = ['SINGLE', 'MULTIPLE', 'BOOLEAN']
 
 export const TOPIC_LABELS: Record<Topic, string> = { OPENEULER: 'openEuler', OPENGAUSS: 'openGauss', KUNPENG: 'Kunpeng' }
+export const KNOWN_TECHNOLOGIES = ['OPENEULER', 'OPENGAUSS', 'KUNPENG', 'DATACOM', 'SECURITY', 'WLAN'] as const
+export const TECHNOLOGY_LABELS: Record<(typeof KNOWN_TECHNOLOGIES)[number], string> = {
+  OPENEULER: 'openEuler',
+  OPENGAUSS: 'openGauss',
+  KUNPENG: 'Kunpeng',
+  DATACOM: 'DATACOM',
+  SECURITY: 'Security',
+  WLAN: 'WLAN',
+}
 export const TYPE_LABELS: Record<QuestionType, string> = { SINGLE: 'Single choice', MULTIPLE: 'Multiple choice', BOOLEAN: 'True / False' }
 
 /** Questions required per technology and type for a full simulated exam (60 total). */

@@ -1,4 +1,4 @@
-import type { QuestionType, Topic } from './config.ts'
+import { KNOWN_TECHNOLOGIES, type QuestionType } from './config.ts'
 
 export interface QualityInput {
   topic: string
@@ -15,7 +15,7 @@ export function questionIssues(q: QualityInput): string[] {
   const options = q.options ?? {}
   const keys = Object.keys(options)
   const answers = q.correct_answers ?? []
-  if (!(['OPENEULER', 'OPENGAUSS', 'KUNPENG'] as Topic[]).includes(q.topic as Topic)) issues.push('Unknown technology')
+  if (!(KNOWN_TECHNOLOGIES as readonly string[]).includes(q.topic.trim().toUpperCase())) issues.push('Unknown technology')
   if (!(['SINGLE', 'MULTIPLE', 'BOOLEAN'] as QuestionType[]).includes(q.type as QuestionType)) issues.push('Unknown type')
   if (keys.length < 2) issues.push('Fewer than two options')
   if (!answers.length) issues.push('No correct answer')

@@ -324,6 +324,16 @@ test('Question quality check and legacy attempt normalization', () => {
     explanation: 'Yes, openEuler is an enterprise Linux distribution.',
   })
   assert.equal(healthy.length, 0)
+  for (const topic of ['DATACOM', 'SECURITY', 'WLAN']) {
+    assert.deepEqual(questionIssues({
+      topic,
+      type: 'SINGLE',
+      question_text: `A valid ${topic} network question?`,
+      options: { A: 'First answer', B: 'Second answer' },
+      correct_answers: ['A'],
+      explanation: 'The first answer is correct.',
+    }), [])
+  }
   assert.equal(
     isExamReady({
       topic: 'OPENEULER',
